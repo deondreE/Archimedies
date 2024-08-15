@@ -4,15 +4,11 @@ workspace "Archimedies"
 	architecture "x86_64"
 	startproject "Core"
 
-  configurations {
+	configurations {
 		"Debug",
 		"Release"
-  }
-
-  solution_items {
-		".editorconfig"
 	}
-
+	
 	flags {
 		"MultiProcessorCompile"
 	}
