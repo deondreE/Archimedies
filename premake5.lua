@@ -8,7 +8,7 @@ workspace "Archimedies"
 		"Debug",
 		"Release"
 	}
-	
+
 	flags {
 		"MultiProcessorCompile"
 	}
@@ -16,9 +16,8 @@ workspace "Archimedies"
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 group "Dependencies"
-  include "vendor/premake"
   include "core/vendor/glad"
-  incldue "core/vendor/GLFW"
+  include "core/vendor/GLFW"
 group ""
 
 group "Core"
