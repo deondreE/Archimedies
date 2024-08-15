@@ -11,7 +11,7 @@ namespace arc {
       Window(int w, int h, std::string name);
       ~Window();
 
-			bool shouldClose() { return glfwWindowShouldClose(window); }
+	  bool shouldClose() { return glfwWindowShouldClose(window); }
 
     private: 
       void initWindow();
