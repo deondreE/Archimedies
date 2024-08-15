@@ -1,9 +1,9 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw.h>
+#include <GLFW/glfw3.h>
 
-// #include <string>
+#include <string>
 
 namespace arc {
   class Window  {

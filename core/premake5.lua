@@ -20,6 +20,7 @@ project "Core"
 
   links {
     "GLFW",
+    "vulkan",
     "GLFW"
   }
 
