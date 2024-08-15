@@ -13,6 +13,7 @@ namespace arc {
 
 	  bool shouldClose() { return glfwWindowShouldClose(window); }
 
+	  GLFWwindow* window;
     private: 
       void initWindow();
 
@@ -20,6 +21,5 @@ namespace arc {
       const int height;
 
       std::string windowName;
-      GLFWwindow *window;
   }; 
 };

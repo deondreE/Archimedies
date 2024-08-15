@@ -2,8 +2,9 @@
 
 namespace arc {
 	void App::run() {
-		while (!window.shouldClose()) {
-			glfwPollEvents();
-		}
+		initWindow();
+		initVulkan();
+		mainLoop();
+		cleanup();
 	}
 }
