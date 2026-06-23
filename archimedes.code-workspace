@@ -1,0 +1,55 @@
+{
+  "folders": [
+    {
+      "name": "Archimedes-Core",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "xaver.clang-format",
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    
+    // File nesting makes the sidebar much cleaner for engineers
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+      "CMakeLists.txt": ".cmake, CMakeCache.txt, cmake_install.cmake",
+      "build.py": ".gitignore, archimedes.code-workspace"
+    },
+
+    "files.exclude": {
+      "**/build/**": false,
+      "**/vendor/**": false
+    },
+    "search.exclude": {
+      "**/vendor": true,
+      "**/build": true
+    }
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "(lldb) Launch Archimedes",
+        "type": "lldb",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/archimedes_bin",
+        "args": [],
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "Build Archimedes"
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.cpptools",
+      "ms-vscode.cpptools-extension-pack",
+      "ms-python.python",
+      "llvm-vs-code-extensions.vscode-clangd",
+      "xaver.clang-format"
+    ]
+  }
+}

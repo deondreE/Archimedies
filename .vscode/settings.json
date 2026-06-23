@@ -1,0 +1,15 @@
+{
+    "editor.formatOnSave": false,
+    "editor.defaultFormatter": "xaver.clang-format",
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "build/": false,
+      "vendor/**": false
+    },
+    "search.exclude": {
+    "**/build": true,
+    "**/vendor": true
+    },
+    "python.terminal.activateEnvInSelectedTerminal": true
+}

@@ -5,6 +5,7 @@ dist/
 *.spv
 compile_commands.json
 assets
+*.savedata
 *.data
 generated_script.cpp
 vendor
