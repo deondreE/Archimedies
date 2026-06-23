@@ -1,0 +1,40 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+
+# Core Indentation
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# Namespace Consolidation
+CompactNamespaces: true
+
+# Brace Wrapping Rules (Allman style for classes, funcs, and structs)
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Never
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+# Pointer and Reference Alignment
+# Set to Left for T* _ptr
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# Line and Column Limits
+ColumnLimit: 120
+
+# Include Blocks Sorting
+IncludeBlocks: Preserve
+...

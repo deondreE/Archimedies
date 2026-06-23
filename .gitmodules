@@ -1,0 +1,12 @@
+[submodule "vendor/fuzztest"]
+	path = vendor/fuzztest
+	url = https://github.com/google/fuzztest.git
+[submodule "vendor/gtest"]
+	path = vendor/gtest
+	url = https://github.com/google/googletest.git
+[submodule "vendor/stb"]
+	path = vendor/stb
+	url = https://github.com/nothings/stb.git
+[submodule "vendor/tinygltf"]
+	path = vendor/tinygltf
+	url = https://github.com/syoyo/tinygltf.git

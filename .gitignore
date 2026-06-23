@@ -1,0 +1,9 @@
+build
+dist/
+.idea/
+.cache/
+*.spv
+compile_commands.json
+assets
+*.data
+generated_script.cpp
