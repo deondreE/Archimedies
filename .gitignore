@@ -8,3 +8,4 @@ assets
 *.data
 generated_script.cpp
 vendor
+gen
