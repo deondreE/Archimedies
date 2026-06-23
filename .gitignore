@@ -7,3 +7,4 @@ compile_commands.json
 assets
 *.data
 generated_script.cpp
+vendor
