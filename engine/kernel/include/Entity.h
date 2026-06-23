@@ -76,10 +76,10 @@ struct Entity {
 
   Entity(const std::string &name) : name{name} {}
 
-  Entity(const Entity &) = delete;
-  Entity &operator=(const Entity &) = delete;
-  Entity(Entity &&) noexcept = default;
-  Entity &operator=(Entity &&) noexcept = default;
+  // Entity(const Entity &) = delete;
+  // Entity &operator=(const Entity &) = delete;
+  // Entity(Entity &&) noexcept = default;
+  // Entity &operator=(Entity &&) noexcept = default;
 
   template <typename T, typename... Args> T &AddComponent(Args &&...args) {
     auto comp = std::make_unique<T>(std::forward<Args>(args)...);
