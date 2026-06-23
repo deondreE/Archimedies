@@ -5,5 +5,5 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 extern "C" {
-    #include "tiny_gltf_v3.h"
+#include "tiny_gltf_v3.h"
 }

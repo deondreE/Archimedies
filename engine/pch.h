@@ -1,20 +1,20 @@
 #ifndef PCH_H
 #define PCH_H
 
-#include <iostream>
-#include <vector>
-#include <string>
-#include <memory>
-#include <string_view>
-#include <chrono>
-#include <thread>
 #include <algorithm>
+#include <chrono>
 #include <functional>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <thread>
+#include <vector>
 
 #ifdef __APPLE__
-    #ifdef __OBJC__
-        #import <Cocoa/Cocoa.h>
-    #endif
+#ifdef __OBJC__
+#import <Cocoa/Cocoa.h>
+#endif
 #endif
 
-#endif //PCH_H
+#endif // PCH_H

@@ -19,6 +19,10 @@ Either you write nothing or something the editor is exactly what you make of it.
 The thoery is that everything is verified not that everything is covered, custom hooks should be verfied as working.
 At scale something like fuzz testing may be in order. Imagine fuzz testing for different rendering methods.
 
+## Building
+
+there is a python script for those that want it. It Also contains the format script.
+
 
 ## Blueprints
 

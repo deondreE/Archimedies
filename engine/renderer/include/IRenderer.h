@@ -2,8 +2,8 @@
 
 #include "Color.h"
 #include "IShader.h"
-#include "types.h"
 #include "ITexture.h"
+#include "types.h"
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -19,7 +19,7 @@ struct TextureConfig {
   u32 width;
   u32 height;
   TextureFormat format;
-  void* data = nullptr;
+  void *data = nullptr;
 };
 
 class MetalRenderer;
@@ -40,12 +40,13 @@ public:
   virtual std::shared_ptr<IShader>
   CreateShader(const std::vector<u32> &spirvBinary, ShaderStage stage) = 0;
   virtual void BindShader(std::shared_ptr<IShader> shader) = 0;
-  virtual std::shared_ptr<ITexture> CreateTexture(const TextureConfig& config) = 0;
+  virtual std::shared_ptr<ITexture>
+  CreateTexture(const TextureConfig &config) = 0;
   virtual void Draw() = 0;
 
-  virtual void* GetCurrentCommandBuffer() = 0;
-  virtual void* GetRenderPassDescriptor() = 0;
-  virtual void* GetDevice() = 0;
+  virtual void *GetCurrentCommandBuffer() = 0;
+  virtual void *GetRenderPassDescriptor() = 0;
+  virtual void *GetDevice() = 0;
 
   static std::unique_ptr<IRenderer> Create();
 };

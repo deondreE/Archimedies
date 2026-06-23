@@ -1,11 +1,11 @@
 #pragma once
 
 #include <SDL.h>
+#include <SDL_ttf.h>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
-#include <SDL_ttf.h>
-#include <map>
 
 struct Color {
   float r, g, b, a;
@@ -91,7 +91,6 @@ struct AppContext {
   std::map<char, Glyph> glyphCache;
   float charW = 0.0f, charH = 0.0f;
 };
-
 
 struct MouseState {
   Vector2 pos;

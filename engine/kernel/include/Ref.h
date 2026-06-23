@@ -23,7 +23,7 @@ public:
   bool operator!=(std::nullptr_t) const { return _ptr != nullptr; }
 
 private:
-  T* _ptr;
+  T *_ptr;
 };
 
 } // namespace arch::core::kernel

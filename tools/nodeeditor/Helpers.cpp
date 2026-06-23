@@ -46,4 +46,3 @@ void BuildGlyphCache(AppContext &app, SDL_Renderer *renderer) {
     }
   }
 }
-

@@ -1,12 +1,12 @@
 #pragma once
 
+#include "IMaterial.h"
 #include "ITexture.h"
 #include "Maths.h"
 #include "Mesh.h"
+#include "Ref.h"
 #include "UUID.h"
 #include "types.h"
-#include "Ref.h"
-#include "IMaterial.h"
 #include <algorithm>
 #include <memory>
 #include <string>
