@@ -27,10 +27,9 @@ public:
     }
 
     size_t connCount = connections.size();
-    out.write(reinterpret_cast<char*>(&connCount), sizeof(connCount));
-    for (const auto &conn : connections)
-    {
-      out.write(reinterpret_cast<const char*>(&conn), sizeof(Connection));
+    out.write(reinterpret_cast<char *>(&connCount), sizeof(connCount));
+    for (const auto &conn : connections) {
+      out.write(reinterpret_cast<const char *>(&conn), sizeof(Connection));
     }
 
     return true;
@@ -153,7 +152,7 @@ private:
     node.custom_value = ReadString(is);
 
     bool hasInputs = false;
-    
+
     is.read(reinterpret_cast<char *>(&hasInputs),
             sizeof(hasInputs)); // Fixed target
     if (hasInputs) {

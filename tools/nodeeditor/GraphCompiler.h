@@ -1,6 +1,5 @@
 #pragma once
 #include "apptypes.h"
-#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>

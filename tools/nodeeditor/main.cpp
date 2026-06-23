@@ -52,7 +52,12 @@ std::vector<NodePreset> g_node_presets = {
      "for (int i_{id} = 0; i_{id} < static_cast<int>({0}); ++i_{id}) {}"},
     {"Engine Call", "ENGINE_VAR_NAME", {225, 225, 225, 255}, 2, 1, "{val}();"},
     {"Comment", "COMMENT", {255, 255, 255, 255}, 0, 0, "// {val}"},
-    {"Function", "FUNC", {0, 255, 0, 255}, 0, 0, "auto {val} = [&](){};\n\t{val}();"}};
+    {"Function",
+     "FUNC",
+     {0, 255, 0, 255},
+     0,
+     0,
+     "auto {val} = [&](){};\n\t{val}();"}};
 // @TODO: For Loops don't generate properly.
 // @TODO: Functions need bodies, -> Group of nodes: see excalidraw
 // @TODO: Make body node.

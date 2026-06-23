@@ -73,12 +73,12 @@ struct Node {
 };
 
 struct NodePreset {
-    std::string type_name;
-    std::string default_label;
-    SDL_Color color;
-    int inputs;
-    int outputs;
-    std::string code_template;
+  std::string type_name;
+  std::string default_label;
+  SDL_Color color;
+  int inputs;
+  int outputs;
+  std::string code_template;
 };
 
 extern std::vector<NodePreset> g_node_presets;
