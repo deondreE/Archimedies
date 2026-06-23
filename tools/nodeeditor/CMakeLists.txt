@@ -2,7 +2,7 @@
 find_package(SDL3 REQUIRED)
 find_package(SDL3_ttf REQUIRED)
 
-add_executable(node_editor main.cpp)
+add_executable(node_editor main.cpp NodeTemplates.cpp Helpers.cpp)
 
 target_link_libraries(node_editor
   PRIVATE

@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <SDL_ttf.h>
+#include <map>
 
 struct Color {
   float r, g, b, a;
@@ -81,4 +83,32 @@ struct NodePreset {
   std::string code_template;
 };
 
+struct AppContext {
+  TTF_Font *font = nullptr;
+  float fontSize = 16.0f;
+  std::string fontPath =
+      "/Users/deondreenglish/Library/Fonts/MapleMono-Regular.ttf";
+  std::map<char, Glyph> glyphCache;
+  float charW = 0.0f, charH = 0.0f;
+};
+
+
+struct MouseState {
+  Vector2 pos;
+};
+
+struct DraggingState {
+  bool is_dragging_connection = false;
+  bool is_dragging_node = false;
+  Vector2 start_pos;
+  int active_node_id = -1;
+  int active_pin_id = -1;
+  Vector2 drag_offset; // Stores mouse distance from top-left of node
+};
+
 extern std::vector<NodePreset> g_node_presets;
+extern bool is_point_in_circle(float px, float py, float cx, float cy,
+                               float radius);
+extern bool is_point_in_rect(float px, float py, SDL_FRect rect);
+extern Node *FindNodeAtPoint(std::vector<Node> &nodes, Vector2 pos);
+extern void BuildGlyphCache(AppContext &app, SDL_Renderer *renderer);

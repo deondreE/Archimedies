@@ -12,76 +12,11 @@
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 920;
 
-struct MouseState {
-  Vector2 pos;
-};
-
-std::vector<NodePreset> g_node_presets = {
-    {"Math: Add", "+", {70, 130, 180, 255}, 2, 1, "float {out} = {0} + {1};"},
-    {"Array",
-     "Array",
-     {100, 100, 100, 255},
-     1,
-     1,
-     "std::vector<float> {out} = {{0}};"},
-    {"Array Get",
-     "GET",
-     {100, 100, 100, 255},
-     2,
-     1,
-     "float {out} = {0}[static_cast<int>({1})];"},
-    {"Array push",
-     "ARRAY PUSH",
-     {100, 100, 100, 255},
-     2,
-     0,
-     "{0}.push_back({1});"},
-    {"Logic: If", "IF", {220, 20, 60, 255}, 2, 1, "if ({0} {val} {1}) {}"},
-    {"Variable", "VAR", {46, 139, 87, 255}, 0, 1, "float {out} = {val};"},
-    {"Consoe Log",
-     "LOG",
-     {200, 20, 60, 255},
-     1,
-     0,
-     "std::cout << {0} << std::endl;"},
-    {"For Loop",
-     "FOR",
-     {20, 20, 122, 255},
-     1,
-     0,
-     "for (int i_{id} = 0; i_{id} < static_cast<int>({0}); ++i_{id}) {}"},
-    {"Engine Call", "ENGINE_VAR_NAME", {225, 225, 225, 255}, 2, 1, "{val}();"},
-    {"Comment", "COMMENT", {255, 255, 255, 255}, 0, 0, "// {val}"},
-    {"Function",
-     "FUNC",
-     {0, 255, 0, 255},
-     0,
-     0,
-     "auto {val} = [&](){};\n\t{val}();"}};
-// @TODO: For Loops don't generate properly.
 // @TODO: Functions need bodies, -> Group of nodes: see excalidraw
 // @TODO: Make body node.
 // @TODO: Engine Calls need to be externed at the top of the file.
 // @TODO: Script runner.
 // @TODO: Nodes should scale to fit their content.
-
-struct DraggingState {
-  bool is_dragging_connection = false;
-  bool is_dragging_node = false;
-  Vector2 start_pos;
-  int active_node_id = -1;
-  int active_pin_id = -1;
-  Vector2 drag_offset; // Stores mouse distance from top-left of node
-};
-
-struct AppContext {
-  TTF_Font *font = nullptr;
-  float fontSize = 16.0f;
-  std::string fontPath =
-      "/Users/deondreenglish/Library/Fonts/MapleMono-Regular.ttf";
-  std::map<char, Glyph> glyphCache;
-  float charW = 0.0f, charH = 0.0f;
-};
 
 // Iterates through glyph cache to draw strings character by character
 void DrawText(AppContext &app, const std::string &text, float x, float y,
@@ -94,44 +29,6 @@ void DrawText(AppContext &app, const std::string &text, float x, float y,
     SDL_RenderTexture(renderer, g.texture, nullptr, &dest);
     x += app.charW;
   }
-}
-
-void ClearGlyphCache(AppContext &app) {
-  for (auto &[c, g] : app.glyphCache) {
-    SDL_DestroyTexture(g.texture);
-  }
-  app.glyphCache.clear();
-}
-
-// Pre-renders characters into textures for fast UI rendering
-void BuildGlyphCache(AppContext &app, SDL_Renderer *renderer) {
-  ClearGlyphCache(app);
-  std::string charset = "0123456789ABCDEF "
-                        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@"
-                        "#$%^&*()_+-=[]{};':\",./<>?\\|`~.";
-  SDL_Color white = {255, 255, 255, 255};
-
-  for (char c : charset) {
-    std::string s(1, c);
-    SDL_Surface *surf = TTF_RenderText_Blended(app.font, s.c_str(), 0, white);
-    if (surf) {
-      app.glyphCache[c] = {SDL_CreateTextureFromSurface(renderer, surf),
-                           surf->w, surf->h};
-      app.charW = (float)surf->w;
-      app.charH = (float)surf->h;
-      SDL_DestroySurface(surf);
-    }
-  }
-}
-
-bool is_point_in_circle(float px, float py, float cx, float cy, float radius) {
-  float dx = px - cx, dy = py - cy;
-  return (dx * dx + dy * dy) <= (radius * radius);
-}
-
-bool is_point_in_rect(float px, float py, SDL_FRect rect) {
-  return (px >= rect.x && px <= rect.x + rect.w && py >= rect.y &&
-          py <= rect.y + rect.h);
 }
 
 Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx) {
@@ -241,15 +138,6 @@ Node *GetNodeById(std::vector<Node> &nodes, int id) {
     return nullptr;
   for (auto &n : nodes) {
     if (n.id == id)
-      return &n;
-  }
-  return nullptr;
-}
-
-Node *FindNodeAtPoint(std::vector<Node> &nodes, Vector2 pos) {
-  for (auto &n : nodes) {
-    SDL_FRect r{n.UI_bounds.x, n.UI_bounds.y, n.UI_bounds.w, n.UI_bounds.h};
-    if (is_point_in_rect(pos.x, pos.y, r))
       return &n;
   }
   return nullptr;
