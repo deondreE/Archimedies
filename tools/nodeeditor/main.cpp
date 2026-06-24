@@ -66,14 +66,21 @@ void DrawText(AppContext &app, const std::string &text, float x, float y,
   }
 }
 
-Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx, bool needs_body = false) {
+Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx,
+                    bool needs_body = false) {
   if (needs_body) {
     return {node.UI_bounds.x + (node.UI_bounds.w / 2.0f),
             node.UI_bounds.y + node.UI_bounds.h};
   }
   int total_pins = is_output ? node.output_count : node.input_count;
-  float x =
-      is_output ? (node.UI_bounds.x + node.UI_bounds.w) : node.UI_bounds.x;
+  float x;
+
+  if (node.name == "Body Name") {
+    x = is_output ? (node.UI_bounds.x + node.UI_bounds.w - 10.0f)
+                  : (node.UI_bounds.x + 10.0f);
+  } else {
+    x = is_output ? (node.UI_bounds.x + node.UI_bounds.w) : node.UI_bounds.x;
+  }
 
   // Distribute pins evenly along the height
   float section_h = node.UI_bounds.h / (float)(total_pins + 1);
@@ -84,7 +91,7 @@ Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx, bool needs_bo
 
 // Draws a Cubic Bezier curve between ports for professional line look
 void draw_bezier(SDL_Renderer *renderer, Vector2 start, Vector2 end,
-                  float thickness = 2.0f) {
+                 float thickness = 2.0f) {
   float offset = SDL_fabsf(end.x - start.x) / 2.0f;
   if (offset < 50.0f)
     offset = 50.0f;
@@ -121,31 +128,36 @@ void draw_bezier(SDL_Renderer *renderer, Vector2 start, Vector2 end,
     // Analytic derivative of the cubic bezier — true tangent at this t,
     // never degenerates to (0,0) the way a backward-difference can at i=0
     Vector2 d = {
-        3 * invT * invT * (cp1.x - start.x) +
-            6 * invT * t * (cp2.x - cp1.x) +
+        3 * invT * invT * (cp1.x - start.x) + 6 * invT * t * (cp2.x - cp1.x) +
             3 * t * t * (end.x - cp2.x),
-        3 * invT * invT * (cp1.y - start.y) +
-            6 * invT * t * (cp2.y - cp1.y) +
+        3 * invT * invT * (cp1.y - start.y) + 6 * invT * t * (cp2.y - cp1.y) +
             3 * t * t * (end.y - cp2.y)};
 
     float len = SDL_sqrtf(d.x * d.x + d.y * d.y);
-    if (len < 0.0001f) len = 0.0001f;
+    if (len < 0.0001f)
+      len = 0.0001f;
     Vector2 normal = {-d.y / len, d.x / len};
 
-    verts.push_back({{pt.x + normal.x * half, pt.y + normal.y * half}, col, {0, 0}});
-    verts.push_back({{pt.x - normal.x * half, pt.y - normal.y * half}, col, {0, 0}});
+    verts.push_back(
+        {{pt.x + normal.x * half, pt.y + normal.y * half}, col, {0, 0}});
+    verts.push_back(
+        {{pt.x - normal.x * half, pt.y - normal.y * half}, col, {0, 0}});
 
     if (i > 0) {
       int base = (i - 1) * 2;
       // two triangles per segment, forming the quad between this point
       // and the previous one
-      indices.push_back(base);     indices.push_back(base + 1); indices.push_back(base + 2);
-      indices.push_back(base + 1); indices.push_back(base + 3); indices.push_back(base + 2);
+      indices.push_back(base);
+      indices.push_back(base + 1);
+      indices.push_back(base + 2);
+      indices.push_back(base + 1);
+      indices.push_back(base + 3);
+      indices.push_back(base + 2);
     }
   }
 
   SDL_RenderGeometry(renderer, nullptr, verts.data(), (int)verts.size(),
-                      indices.data(), (int)indices.size());
+                     indices.data(), (int)indices.size());
 }
 // Manually draws a filled circle via point-strips
 void draw_circle(SDL_Renderer *renderer, float cx, float cy, float radius) {
@@ -166,37 +178,48 @@ Node CreateNodeFromPreset(const NodePreset &preset, MouseState mState,
   g_id_counter++;
   int parent_id = g_id_counter;
   Node parent = {g_id_counter,
-          preset.default_label,
-          preset.type_name,
-          std::nullopt,
-          std::nullopt,
-          preset.inputs,
-          preset.outputs,
-          Color(preset.color),
-          {mState.pos.x, mState.pos.y, 150.0f, 100.0f},
-          "",
-          preset.needs_body};
+                 preset.default_label,
+                 preset.type_name,
+                 std::nullopt,
+                 std::nullopt,
+                 preset.inputs,
+                 preset.outputs,
+                 Color(preset.color),
+                 {mState.pos.x, mState.pos.y, 150.0f, 100.0f},
+                 "",
+                 preset.needs_body};
 
   if (preset.needs_body) {
     g_id_counter++;
     int child_id = g_id_counter;
 
     Node bodyNode = {child_id,
-                       "Body Node",
-                       "Body",
-                       std::nullopt,
-                       std::nullopt,
-                       1, // One input to receive the "body" connection
-                       1,
-                       {35, 35, 35, 255},
-                       {mState.pos.x, mState.pos.y + 150.0f, 500.0f, 250.0f}};
+                     "Body Node",
+                     preset.type_name,
+                     std::nullopt,
+                     std::nullopt,
+                     1, // One input to receive the "body" connection
+                     1,
+                     {35, 35, 35, 255},
+                     {mState.pos.x, mState.pos.y + 150.0f, 400.0f, 300.0f}};
+    bodyNode.inner_node = BodyNodeInner<Node>(parent_id, {});
+    Node innerDefault = {++g_id_counter,
+                         "LOG",
+                         "Utility",
+                         std::nullopt,
+                         std::nullopt,
+                         1,
+                         0,
+                         {180, 100, 50, 255},
+                         {mState.pos.x + 100, mState.pos.y + 200, 120, 60}};
+    bodyNode.inner_node->nodes.push_back(innerDefault);
 
     nodes.push_back(bodyNode);
 
     connections.push_back({parent_id, 999, child_id, 0});
   }
 
-  return parent; 
+  return parent;
 }
 
 Node CreateNode(const std::string &name, MouseState mState) {
@@ -257,11 +280,76 @@ float GetDisplayScale(SDL_Window *window, SDL_Renderer *renderer) {
   return (win_w > 0) ? (float)rend_w / (float)win_w : 1.0f;
 }
 
+// 1. Create a helper function above main() or at the top of the file
+void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
+                    MouseState &mState, DraggingState &dState) {
+  SDL_FRect r{node.UI_bounds.x, node.UI_bounds.y, node.UI_bounds.w,
+              node.UI_bounds.h};
+
+  // Body Node Style (The Container)
+  if (node.name == "Body Node") {
+    SDL_SetRenderDrawColor(renderer, 15, 15, 20, 255);
+    SDL_RenderFillRect(renderer, &r);
+    SDL_SetRenderDrawColor(renderer, 100, 150, 255, 255);
+    SDL_RenderRect(renderer, &r);
+
+    // Draw the Container Label
+    DrawText(app, "BODY: " + node.internalFunction, node.UI_bounds.x + 10,
+             node.UI_bounds.y - 25, {100, 150, 255, 255}, renderer);
+
+    // Render Internal Passthrough Pins
+    for (int i = 0; i < node.input_count; i++) {
+      Vector2 p = get_pin_pos(node, false, i);
+      SDL_SetRenderDrawColor(renderer, 255, 165, 0, 255); // Orange Input
+      draw_circle(renderer, p.x, p.y, 6.0f);
+    }
+    for (int i = 0; i < node.output_count; i++) {
+      Vector2 p = get_pin_pos(node, true, i);
+      SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255); // Pink Output
+      draw_circle(renderer, p.x, p.y, 6.0f);
+    }
+
+    // RECURSION: Draw Inner Nodes
+    if (node.inner_node.has_value()) {
+      for (auto &inner : node.inner_node->nodes) {
+        DrawSingleNode(renderer, app, inner, mState, dState);
+      }
+    }
+  }
+  // Standard Node Style
+  else {
+    SDL_SetRenderDrawColor(renderer, node.color.r, node.color.g, node.color.b,
+                           255);
+    SDL_RenderFillRect(renderer, &r);
+
+    DrawText(app, node.name, node.UI_bounds.x + 10, node.UI_bounds.y + 10,
+             {255, 255, 255, 255}, renderer);
+
+    // Draw normal pins
+    SDL_SetRenderDrawColor(renderer, 80, 220, 80, 255);
+    for (int i = 0; i < node.input_count; ++i) {
+      Vector2 p = get_pin_pos(node, false, i);
+      draw_circle(renderer, p.x, p.y, 4.0f);
+    }
+    SDL_SetRenderDrawColor(renderer, 80, 80, 220, 255);
+    for (int i = 0; i < node.output_count; ++i) {
+      Vector2 p = get_pin_pos(node, true, i);
+      draw_circle(renderer, p.x, p.y, 4.0f);
+    }
+  }
+
+  // Border highlight
+  SDL_SetRenderDrawColor(
+      renderer, (dState.active_node_id == node.id) ? 255 : 50, 50, 50, 255);
+  SDL_RenderRect(renderer, &r);
+}
+
 int main(int argc, char *argv[]) {
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
   TTF_Init();
-  SDL_Window *window = SDL_CreateWindow("Node Editor", WINDOW_WIDTH,
-                                        WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+  SDL_Window *window =
+      SDL_CreateWindow("Node Editor", WINDOW_WIDTH, WINDOW_HEIGHT,
+                       SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
   SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
 
   AppContext app;
@@ -327,13 +415,23 @@ int main(int argc, char *argv[]) {
         if (dState.is_dragging_node) {
           for (auto &node : nodes) {
             if (node.id == dState.active_node_id) {
-              node.UI_bounds.x = mState.pos.x - dState.drag_offset.x;
-              node.UI_bounds.y = mState.pos.y - dState.drag_offset.y;
+              float new_x = mState.pos.x - dState.drag_offset.x;
+              float new_y = mState.pos.y - dState.drag_offset.y;
+              float dx = new_x - node.UI_bounds.x;
+              float dy = new_y - node.UI_bounds.y;
+              node.UI_bounds.x = new_x;
+              node.UI_bounds.y = new_y;
+
+              if (node.inner_node.has_value()) {
+                for (auto &inner : node.inner_node->nodes) {
+                  inner.UI_bounds.x += dx;
+                  inner.UI_bounds.y += dy;
+                }
+              }
             }
           }
-        }
-        else if (dState.is_resizing_node) {
-          for (auto& node : nodes) {
+        } else if (dState.is_resizing_node) {
+          for (auto &node : nodes) {
             if (node.id == dState.active_node_id) {
               float new_w = mState.pos.x - node.UI_bounds.x;
               float new_h = mState.pos.y - node.UI_bounds.y;
@@ -358,47 +456,47 @@ int main(int argc, char *argv[]) {
           _running = false;
 
         // Delete node if mState.pos is_over a node
-       if (key == SDLK_X) {
-         for (auto it = nodes.begin(); it != nodes.end(); ++it) {
-           SDL_FRect r{it->UI_bounds.x, it->UI_bounds.y, it->UI_bounds.w,
-                       it->UI_bounds.h};
+        if (key == SDLK_X) {
+          for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+            SDL_FRect r{it->UI_bounds.x, it->UI_bounds.y, it->UI_bounds.w,
+                        it->UI_bounds.h};
 
-           if (is_point_in_rect(mState.pos.x, mState.pos.y, r)) {
-             int id_to_delete = it->id;
-             int body_node_id = -1;
-             if (it->needs_body) {
-               for (const auto &conn : connections) {
-                 if (conn.from_node_id == id_to_delete &&
-                     conn.from_pin_idx == 999) {
-                   body_node_id = conn.to_node_id;
-                   break;
-                 }
-               }
-             }
+            if (is_point_in_rect(mState.pos.x, mState.pos.y, r)) {
+              int id_to_delete = it->id;
+              int body_node_id = -1;
+              if (it->needs_body) {
+                for (const auto &conn : connections) {
+                  if (conn.from_node_id == id_to_delete &&
+                      conn.from_pin_idx == 999) {
+                    body_node_id = conn.to_node_id;
+                    break;
+                  }
+                }
+              }
 
-             if (id_to_delete == g_selected_node_id ||
-                 body_node_id == g_selected_node_id) {
-               g_selected_node_id = -1;
-             }
+              if (id_to_delete == g_selected_node_id ||
+                  body_node_id == g_selected_node_id) {
+                g_selected_node_id = -1;
+              }
 
-             std::erase_if(nodes, [id_to_delete, body_node_id](const Node &n) {
-               return n.id == id_to_delete || n.id == body_node_id;
-             });
+              std::erase_if(nodes, [id_to_delete, body_node_id](const Node &n) {
+                return n.id == id_to_delete || n.id == body_node_id;
+              });
 
-             CompactNodeIds(nodes, connections);
-             break;
-           }
-         }
-       }
-       // Toggle command palette via Meta+P (macOS Cmd+P)
-       if (isCmdPressed && key == SDLK_P) {
-         draw_command_pallete = !draw_command_pallete;
-         if (draw_command_pallete) {
-           SDL_StartTextInput(window);
-           command_pallete_buffer = "";
-         } else {
-           SDL_StopTextInput(window);
-         }
+              CompactNodeIds(nodes, connections);
+              break;
+            }
+          }
+        }
+        // Toggle command palette via Meta+P (macOS Cmd+P)
+        if (isCmdPressed && key == SDLK_P) {
+          draw_command_pallete = !draw_command_pallete;
+          if (draw_command_pallete) {
+            SDL_StartTextInput(window);
+            command_pallete_buffer = "";
+          } else {
+            SDL_StopTextInput(window);
+          }
         }
 
         if (draw_command_pallete) {
@@ -429,7 +527,8 @@ int main(int argc, char *argv[]) {
               if (existing) {
                 g_selected_node_id = existing->id;
               } else if (best_match) {
-                nodes.push_back(CreateNodeFromPreset(*best_match, mState, nodes, connections));
+                nodes.push_back(CreateNodeFromPreset(*best_match, mState, nodes,
+                                                     connections));
                 g_selected_node_id = nodes.back().id;
               } else {
                 nodes.push_back(CreateNode(command_pallete_buffer, mState));
@@ -479,7 +578,8 @@ int main(int argc, char *argv[]) {
 
           if (node.needs_body) {
             Vector2 p = get_pin_pos(node, true, 0, true);
-            if (is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y, 10.0f)) {
+            if (is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y,
+                                   10.0f)) {
               dState.is_dragging_connection = true;
               dState.active_node_id = node.id;
               dState.active_pin_id = 999; // Add this field to DraggingState
@@ -489,7 +589,6 @@ int main(int argc, char *argv[]) {
             }
           }
         }
-
 
         // Hit Detection Pass 2: Node Bodies (Movement)
         if (!hit_something) {
@@ -511,12 +610,17 @@ int main(int argc, char *argv[]) {
                 dState.drag_offset = {mState.pos.x - nodes[i].UI_bounds.x,
                                       mState.pos.y - nodes[i].UI_bounds.y};
                 if (nodes[i].needs_body) {
-                  for (auto& conn : connections) {
-                    if (conn.from_node_id == nodes[i].id && conn.from_pin_idx == 999) {
-                      Node* body = GetNodeById(nodes, conn.to_node_id);
+                  for (auto &conn : connections) {
+                    if (conn.from_node_id == nodes[i].id &&
+                        conn.from_pin_idx == 999) {
+                      Node *body = GetNodeById(nodes, conn.to_node_id);
                       if (body) {
-                        body->UI_bounds.x += (mState.pos.x - dState.drag_offset.x) - nodes[i].UI_bounds.x;
-                        body->UI_bounds.y += (mState.pos.y - dState.drag_offset.y) - nodes[i].UI_bounds.y;
+                        body->UI_bounds.x +=
+                            (mState.pos.x - dState.drag_offset.x) -
+                            nodes[i].UI_bounds.x;
+                        body->UI_bounds.y +=
+                            (mState.pos.y - dState.drag_offset.y) -
+                            nodes[i].UI_bounds.y;
                       }
                     }
                   }
@@ -543,8 +647,9 @@ int main(int argc, char *argv[]) {
               if (is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y,
                                      10.0f)) {
                 if (dState.active_node_id != node.id) {
-                  connections.push_back({dState.active_node_id,
-                                         dState.active_pin_id, node.id, i}); // is_body could be looking for 999
+                  connections.push_back(
+                      {dState.active_node_id, dState.active_pin_id, node.id,
+                       i}); // is_body could be looking for 999
                 }
               }
             }
@@ -573,79 +678,15 @@ int main(int argc, char *argv[]) {
       Node *t = GetNodeById(nodes, conn.to_node_id);
       if (f && t) {
         bool is_body = (conn.from_pin_idx == 999);
-        draw_bezier(renderer, get_pin_pos(*f, true, is_body ? 0 : conn.from_pin_idx),
+        draw_bezier(renderer,
+                    get_pin_pos(*f, true, is_body ? 0 : conn.from_pin_idx),
                     get_pin_pos(*t, false, conn.to_pin_idx), 2.0f);
       }
     }
 
-    // Main Node Rendering Loop
+    // Main rendering
     for (auto &node : nodes) {
-      SDL_FRect r{node.UI_bounds.x, node.UI_bounds.y, node.UI_bounds.w,
-                  node.UI_bounds.h};
-      SDL_SetRenderDrawColor(renderer, node.color.r, node.color.g, node.color.b,
-                             255);
-      SDL_RenderFillRect(renderer, &r);
-
-      float cy = node.UI_bounds.y + (node.UI_bounds.h / 2.0f);
-      float padding = 20.0f;
-      DrawText(app, node.name, node.UI_bounds.x + padding,
-               node.UI_bounds.y + padding,  {0, 0, 0, 255}, renderer);
-
-      // Draw custom node values underneath the name of variable.
-      if (node.custom_value != "0.0f") {
-        DrawText(app, "[" + node.custom_value + "]", node.UI_bounds.x + padding, cy,
-                 {50, 50, 50, 255}, renderer);
-      }
-
-      // COMMENT Node draw some small visual for resize.
-      if (node.name == "COMMENT") {
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_FRect handle = {
-          node.UI_bounds.x + node.UI_bounds.w - 10,
-          node.UI_bounds.y + node.UI_bounds.h - 10,
-          10, 10
-        };
-        SDL_RenderFillRect(renderer, &handle);
-      }
-
-      if (node.needs_body) {
-        Vector2 p = get_pin_pos(node, false, 0, true);
-        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-        float radius =
-            is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y, 10.0f)
-                ? 7.0f
-                : 4.0f;
-        draw_circle(renderer, p.x, p.y, radius);
-      }
-
-      // Render Input (Green) and Output (Blue) ports with hover scaling
-      SDL_SetRenderDrawColor(renderer, 80, 220, 80, 255);
-      for (int i = 0; i < node.input_count; ++i) {
-        Vector2 p = get_pin_pos(node, false, i);
-        float radius =
-            is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y, 10.0f)
-                ? 7.0f
-                : 4.0f;
-        draw_circle(renderer, p.x, p.y, radius);
-      }
-
-      SDL_SetRenderDrawColor(renderer, 80, 80, 220, 255);
-      for (int i = 0; i < node.output_count; i++) {
-        Vector2 p = get_pin_pos(node, true, i);
-        float radius =
-            is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y, 10.0f)
-                ? 7.0f
-                : 4.0f;
-        draw_circle(renderer, p.x, p.y, radius);
-      }
-
-      // Highlight active node border while dragging
-      SDL_SetRenderDrawColor(
-          renderer,
-          (dState.is_dragging_node && dState.active_node_id == node.id) ? 255
-                                                                        : 100,
-          100, 100, 255);
-      SDL_RenderRect(renderer, &r);
+      DrawSingleNode(renderer, app, node, mState, dState);
     }
 
     // Draw active feedback line for port connections
@@ -656,7 +697,7 @@ int main(int argc, char *argv[]) {
 
     // Semi-transparent Overlay: Command Palette
     if (draw_command_pallete) {
-      SDL_Window* win = SDL_GetRenderWindow(renderer);
+      SDL_Window *win = SDL_GetRenderWindow(renderer);
       int rw, rh;
       SDL_GetWindowSize(win, &rw, &rh);
       float cpw = 500.0f, cph = 25.0f;

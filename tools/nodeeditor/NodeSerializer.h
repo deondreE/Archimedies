@@ -120,6 +120,17 @@ private:
 
     os.write(reinterpret_cast<const char*>(&node.needs_body), sizeof(node.needs_body));
 
+    bool hasInner = node.inner_node.has_value();
+    os.write(reinterpret_cast<const char*>(&hasInner), sizeof(hasInner));
+    if (hasInner) {
+      os.write(reinterpret_cast<const char*>(&node.inner_node->parent_id), sizeof(int));
+      size_t innerCount = node.inner_node->nodes.size();
+      os.write(reinterpret_cast<const char*>(&innerCount), sizeof(innerCount));
+        for (const auto& inner : node.inner_node->nodes) {
+            WriteNode(os, inner); // RECURSIVE CALL
+        }
+    }
+
     bool hasInputs = node.inputs.has_value();
     os.write(reinterpret_cast<const char *>(&hasInputs), sizeof(hasInputs));
     if (hasInputs) {
@@ -154,6 +165,24 @@ private:
     node.custom_value = ReadString(is);
 
     is.read(reinterpret_cast<char *>(&node.needs_body), sizeof(node.needs_body));
+
+    bool hasInner = false;
+    is.read(reinterpret_cast<char*>(&hasInner), sizeof(hasInner));
+    if (hasInner) {
+        int parent_id;
+        is.read(reinterpret_cast<char*>(&parent_id), sizeof(int));
+        
+        size_t innerCount = 0;
+        is.read(reinterpret_cast<char*>(&innerCount), sizeof(innerCount));
+        
+        BodyNodeInner<Node> innerContainer;
+        innerContainer.parent_id = parent_id;
+        for (size_t i = 0; i < innerCount; ++i) {
+            innerContainer.nodes.push_back(ReadNode(is)); // RECURSIVE CALL
+        }
+        node.inner_node = innerContainer;
+    }
+
 
     bool hasInputs = false;
 

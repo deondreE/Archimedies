@@ -58,12 +58,21 @@ struct Link {
   int endPinId;
 };
 
+
+/// This refers to a body node, the nodes inside of that body
+template <typename T>
+struct BodyNodeInner {
+  int parent_id;
+  std::vector<T> nodes;
+};
+
 /** Default node type */
 struct Node {
   int id;
   std::string name;
   std::string internalFunction;
 
+  // @TODO: Figure out if I actually use these
   std::optional<std::vector<Pin>> inputs;
   std::optional<std::vector<Pin>> outputs;
   int input_count = 1;
@@ -73,6 +82,7 @@ struct Node {
   Rect UI_bounds;
   std::string custom_value = "0.0f";
   bool needs_body = false;
+  std::optional<BodyNodeInner<Node>> inner_node = std::nullopt;
 };
 
 struct NodePreset {
