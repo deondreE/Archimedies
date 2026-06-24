@@ -5,6 +5,7 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <cstdio>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <optional>
 #include <vector>
@@ -216,6 +217,17 @@ int main(int argc, char *argv[]) {
             }
           }
         }
+        else if (dState.is_resizing_node) {
+          for (auto& node : nodes) {
+            if (node.id == dState.active_node_id) {
+              float new_w = mState.pos.x - node.UI_bounds.x;
+              float new_h = mState.pos.y - node.UI_bounds.y;
+
+              node.UI_bounds.w = (new_w > 50.0f) ? new_w : 50.0f;
+              node.UI_bounds.h = (new_h > 50.0f) ? new_h : 50.0f;
+            }
+          }
+        }
       }
 
       // Handle raw character input when the command palette is active
@@ -341,11 +353,19 @@ int main(int argc, char *argv[]) {
                                  {nodes[i].UI_bounds.x, nodes[i].UI_bounds.y,
                                   nodes[i].UI_bounds.w,
                                   nodes[i].UI_bounds.h})) {
-              g_selected_node_id = nodes[i].id;
-              dState.is_dragging_node = true;
-              dState.active_node_id = nodes[i].id;
-              dState.drag_offset = {mState.pos.x - nodes[i].UI_bounds.x,
-                                    mState.pos.y - nodes[i].UI_bounds.y};
+              if (nodes[i].name == "COMMENT" &&
+                  GetNodeRegion(mState.pos, nodes[i].UI_bounds, 20.0f) ==
+                      NodeRegion::BOTTOM_RIGHT) {
+                dState.is_dragging_node = false;
+                dState.is_resizing_node = true;
+                dState.active_node_id = nodes[i].id;
+              } else {
+                g_selected_node_id = nodes[i].id;
+                dState.is_dragging_node = true;
+                dState.active_node_id = nodes[i].id;
+                dState.drag_offset = {mState.pos.x - nodes[i].UI_bounds.x,
+                                      mState.pos.y - nodes[i].UI_bounds.y};
+              }
               hit_something = true;
               break;
             }
@@ -376,6 +396,7 @@ int main(int argc, char *argv[]) {
         }
         dState.is_dragging_connection = false;
         dState.is_dragging_node = false;
+        dState.is_resizing_node = false;
         dState.active_node_id = -1;
       }
     }
@@ -410,6 +431,17 @@ int main(int argc, char *argv[]) {
       if (node.custom_value != "0.0f") {
         DrawText(app, "[" + node.custom_value + "]", cx, cy + 20,
                  {50, 50, 50, 255}, renderer);
+      }
+
+      // COMMENT Node draw some small visual for resize.
+      if (node.name == "COMMENT") {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_FRect handle = {
+          node.UI_bounds.x + node.UI_bounds.w - 10,
+          node.UI_bounds.y + node.UI_bounds.h - 10,
+          10, 10
+        };
+        SDL_RenderFillRect(renderer, &handle);
       }
 
       // Render Input (Green) and Output (Blue) ports with hover scaling

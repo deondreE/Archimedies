@@ -46,3 +46,19 @@ void BuildGlyphCache(AppContext &app, SDL_Renderer *renderer) {
     }
   }
 }
+
+NodeRegion GetNodeRegion(Vector2 mousePos, const Rect &bounds, float handleSize = 10.0f) {
+  // Bottom Left
+  if (mousePos.x <= bounds.x + handleSize &&
+      mousePos.y >= (bounds.y + bounds.h) - handleSize) {
+    return NodeRegion::BOTTOM_LEFT;
+  }
+
+  // Bottom Right
+  if (mousePos.x >= (bounds.x + bounds.w) - handleSize &&
+      mousePos.y >= (bounds.y + bounds.h) - handleSize) {
+    return NodeRegion::BOTTOM_RIGHT;
+  }
+
+  return NodeRegion::BODY;
+}

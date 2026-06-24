@@ -99,11 +99,14 @@ struct MouseState {
 struct DraggingState {
   bool is_dragging_connection = false;
   bool is_dragging_node = false;
+  bool is_resizing_node = false;
   Vector2 start_pos;
   int active_node_id = -1;
   int active_pin_id = -1;
   Vector2 drag_offset; // Stores mouse distance from top-left of node
 };
+
+enum class NodeRegion { BODY, BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT };
 
 extern std::vector<NodePreset> g_node_presets;
 extern bool is_point_in_circle(float px, float py, float cx, float cy,
@@ -111,3 +114,4 @@ extern bool is_point_in_circle(float px, float py, float cx, float cy,
 extern bool is_point_in_rect(float px, float py, SDL_FRect rect);
 extern Node *FindNodeAtPoint(std::vector<Node> &nodes, Vector2 pos);
 extern void BuildGlyphCache(AppContext &app, SDL_Renderer *renderer);
+extern NodeRegion GetNodeRegion(Vector2 mousePos, const Rect& bounds, float handleSize);

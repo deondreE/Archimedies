@@ -35,7 +35,7 @@ std::vector<NodePreset> g_node_presets = {
      0,
      "for (int i_{id} = 0; i_{id} < static_cast<int>({0}); ++i_{id}) {}"},
     {"Engine Call", "ENGINE_VAR_NAME", {225, 225, 225, 255}, 2, 1, "{val}();"},
-    {"Comment", "COMMENT", {255, 255, 255, 255}, 0, 0, "// {val}"},
+    {"Comment", "COMMENT", {255, 255, 255, 125}, 0, 0, "// {val}"},
     {"Function",
      "FUNC",
      {0, 255, 0, 255},

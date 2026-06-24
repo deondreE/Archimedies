@@ -1,4 +1,3 @@
-#pragma once
 #include "apptypes.h"
 #include <sstream>
 #include <string>
