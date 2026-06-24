@@ -22,12 +22,46 @@ const int WINDOW_HEIGHT = 920;
 // Iterates through glyph cache to draw strings character by character
 void DrawText(AppContext &app, const std::string &text, float x, float y,
               SDL_Color color, SDL_Renderer *renderer) {
+  if (text.empty())
+    return;
+
+  // 1. Get the window associated with the renderer safely (SDL3 way)
+  SDL_Window *window = SDL_GetRenderWindow(renderer);
+  int win_w, rend_w;
+
+  if (!SDL_GetWindowSize(window, &win_w, NULL) ||
+      !SDL_GetRenderOutputSize(renderer, &rend_w, NULL)) {
+    return;
+  }
+
+  // 2. Calculate scale (e.g., 0.5 for Retina)
+  float inv_scale = (rend_w > 0) ? (float)win_w / (float)rend_w : 1.0f;
+
   for (char c : text) {
+    // 3. Skip whitespace but still advance the cursor
+    if (c == ' ') {
+      x += app.charW;
+      continue;
+    }
+
     char lookup = app.glyphCache.contains(c) ? c : '.';
-    Glyph &g = app.glyphCache[lookup];
+    auto it = app.glyphCache.find(lookup);
+    if (it == app.glyphCache.end())
+      continue;
+
+    Glyph &g = it->second;
+
+    // 4. CRITICAL: Set Blend Mode so the alpha channel works
+    SDL_SetTextureBlendMode(g.texture, SDL_BLENDMODE_BLEND);
     SDL_SetTextureColorMod(g.texture, color.r, color.g, color.b);
-    SDL_FRect dest = {x, y, (float)g.w, (float)g.h};
+    SDL_SetTextureAlphaMod(g.texture, color.a);
+
+    // 5. Draw using the inverse scale to fit logical coordinates
+    SDL_FRect dest = {x, y, (float)g.w * inv_scale, (float)g.h * inv_scale};
+
     SDL_RenderTexture(renderer, g.texture, nullptr, &dest);
+
+    // Advance x based on the logical character width
     x += app.charW;
   }
 }
@@ -45,7 +79,8 @@ Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx) {
 }
 
 // Draws a Cubic Bezier curve between ports for professional line look
-void draw_bezier(SDL_Renderer *renderer, Vector2 start, Vector2 end) {
+void draw_bezier(SDL_Renderer *renderer, Vector2 start, Vector2 end,
+                  float thickness = 2.0f) {
   float offset = SDL_fabsf(end.x - start.x) / 2.0f;
   if (offset < 50.0f)
     offset = 50.0f;
@@ -53,20 +88,61 @@ void draw_bezier(SDL_Renderer *renderer, Vector2 start, Vector2 end) {
   Vector2 cp1 = {start.x + offset, start.y};
   Vector2 cp2 = {end.x - offset, end.y};
 
-  const int steps = 30;
-  Vector2 prev = start;
-  for (int i = 1; i <= steps; i++) {
+  float dx = end.x - start.x, dy = end.y - start.y;
+  float approx_len = SDL_sqrtf(dx * dx + dy * dy);
+  int steps = (int)SDL_clamp(approx_len / 4.0f, 20.0f, 120.0f);
+
+  Uint8 r, g, b, a;
+  SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+  SDL_FColor col = {r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f};
+
+  std::vector<SDL_Vertex> verts;
+  std::vector<int> indices;
+  verts.reserve((steps + 1) * 2);
+  indices.reserve(steps * 6);
+
+  float half = thickness / 2.0f;
+
+  for (int i = 0; i <= steps; i++) {
     float t = (float)i / (float)steps;
     float invT = 1.0f - t;
-    float x = (invT * invT * invT * start.x) + (3 * invT * invT * t * cp1.x) +
-              (3 * invT * t * t * cp2.x) + (t * t * t * end.x);
-    float y = (invT * invT * invT * start.y) + (3 * invT * invT * t * cp1.y) +
-              (3 * invT * t * t * cp2.y) + (t * t * t * end.y);
-    SDL_RenderLine(renderer, prev.x, prev.y, x, y);
-    prev = {x, y};
-  }
-}
 
+    Vector2 pt = {
+        (invT * invT * invT * start.x) + (3 * invT * invT * t * cp1.x) +
+            (3 * invT * t * t * cp2.x) + (t * t * t * end.x),
+        (invT * invT * invT * start.y) + (3 * invT * invT * t * cp1.y) +
+            (3 * invT * t * t * cp2.y) + (t * t * t * end.y)};
+
+    // Analytic derivative of the cubic bezier — true tangent at this t,
+    // never degenerates to (0,0) the way a backward-difference can at i=0
+    Vector2 d = {
+        3 * invT * invT * (cp1.x - start.x) +
+            6 * invT * t * (cp2.x - cp1.x) +
+            3 * t * t * (end.x - cp2.x),
+        3 * invT * invT * (cp1.y - start.y) +
+            6 * invT * t * (cp2.y - cp1.y) +
+            3 * t * t * (end.y - cp2.y)};
+
+    float len = SDL_sqrtf(d.x * d.x + d.y * d.y);
+    if (len < 0.0001f) len = 0.0001f;
+    Vector2 normal = {-d.y / len, d.x / len};
+
+    verts.push_back({{pt.x + normal.x * half, pt.y + normal.y * half}, col, {0, 0}});
+    verts.push_back({{pt.x - normal.x * half, pt.y - normal.y * half}, col, {0, 0}});
+
+    if (i > 0) {
+      int base = (i - 1) * 2;
+      // two triangles per segment, forming the quad between this point
+      // and the previous one
+      indices.push_back(base);     indices.push_back(base + 1); indices.push_back(base + 2);
+      indices.push_back(base + 1); indices.push_back(base + 3); indices.push_back(base + 2);
+    }
+  }
+
+  SDL_RenderGeometry(renderer, nullptr, verts.data(), (int)verts.size(),
+                      indices.data(), (int)indices.size());
+}
 // Manually draws a filled circle via point-strips
 void draw_circle(SDL_Renderer *renderer, float cx, float cy, float radius) {
   for (int w = 0; w < radius * 2; w++) {
@@ -144,11 +220,18 @@ Node *GetNodeById(std::vector<Node> &nodes, int id) {
   return nullptr;
 }
 
+float GetDisplayScale(SDL_Window *window, SDL_Renderer *renderer) {
+  int win_w, rend_w;
+  SDL_GetWindowSize(window, &win_w, NULL);
+  SDL_GetCurrentRenderOutputSize(renderer, &rend_w, NULL);
+  return (win_w > 0) ? (float)rend_w / (float)win_w : 1.0f;
+}
+
 int main(int argc, char *argv[]) {
   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
   TTF_Init();
   SDL_Window *window = SDL_CreateWindow("Node Editor", WINDOW_WIDTH,
-                                        WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
+                                        WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
   SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
 
   AppContext app;
@@ -199,6 +282,8 @@ int main(int argc, char *argv[]) {
   bool draw_command_pallete = false;
   std::string command_pallete_buffer;
 
+  float dpi_scale = GetDisplayScale(window, renderer);
+  SDL_SetRenderScale(renderer, dpi_scale, dpi_scale);
   while (_running) {
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_EVENT_QUIT)
@@ -399,6 +484,13 @@ int main(int argc, char *argv[]) {
         dState.is_resizing_node = false;
         dState.active_node_id = -1;
       }
+
+      if (event.type == SDL_EVENT_WINDOW_DISPLAY_CHANGED ||
+          event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) {
+        float new_scale = GetDisplayScale(window, renderer);
+        SDL_SetRenderScale(renderer, new_scale, new_scale);
+        BuildGlyphCache(app, renderer);
+      }
     }
 
     SDL_SetRenderDrawColor(renderer, 25, 25, 25, 255);
@@ -410,7 +502,7 @@ int main(int argc, char *argv[]) {
       Node *t = GetNodeById(nodes, conn.to_node_id);
       if (f && t) {
         draw_bezier(renderer, get_pin_pos(*f, true, conn.from_pin_idx),
-                    get_pin_pos(*t, false, conn.to_pin_idx));
+                    get_pin_pos(*t, false, conn.to_pin_idx), 2.0f);
       }
     }
 
@@ -423,13 +515,13 @@ int main(int argc, char *argv[]) {
       SDL_RenderFillRect(renderer, &r);
 
       float cy = node.UI_bounds.y + (node.UI_bounds.h / 2.0f);
-      float cx = node.UI_bounds.x + (node.UI_bounds.w / 2.0f);
-      // @Todo: some way to measure the text. so text always has a background
-      DrawText(app, node.name, cx, cy, {0, 0, 0, 255}, renderer);
+      float padding = 20.0f;
+      DrawText(app, node.name, node.UI_bounds.x + padding,
+               node.UI_bounds.y + padding,  {0, 0, 0, 255}, renderer);
 
       // Draw custom node values underneath the name of variable.
       if (node.custom_value != "0.0f") {
-        DrawText(app, "[" + node.custom_value + "]", cx, cy + 20,
+        DrawText(app, "[" + node.custom_value + "]", node.UI_bounds.x + padding, cy,
                  {50, 50, 50, 255}, renderer);
       }
 
@@ -482,8 +574,9 @@ int main(int argc, char *argv[]) {
 
     // Semi-transparent Overlay: Command Palette
     if (draw_command_pallete) {
+      SDL_Window* win = SDL_GetRenderWindow(renderer);
       int rw, rh;
-      SDL_GetRenderOutputSize(renderer, &rw, &rh);
+      SDL_GetWindowSize(win, &rw, &rh);
       float cpw = 500.0f, cph = 25.0f;
       SDL_FRect cp_rect{(float)rw / 2.0f - (cpw / 2.0f),
                         (float)rh / 2.0f - (cph / 2.0f), cpw, cph};

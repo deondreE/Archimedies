@@ -28,20 +28,53 @@ void ClearGlyphCache(AppContext &app) {
 
 // Pre-renders characters into textures for fast UI rendering
 void BuildGlyphCache(AppContext &app, SDL_Renderer *renderer) {
-  ClearGlyphCache(app);
-  std::string charset = "0123456789ABCDEF "
+  int win_w, rend_w;
+  SDL_Window *window =
+      SDL_GetRenderWindow(renderer);
+  if (!window)
+    return;
+
+  SDL_GetWindowSize(window, &win_w, NULL);
+  SDL_GetRenderOutputSize(renderer, &rend_w, NULL);
+  float dpi_scale = (win_w > 0) ? (float)rend_w / (float)win_w : 1.0f;
+
+  static float last_scale = 0.0f;
+  if (dpi_scale != last_scale) {
+    if (app.font)
+      TTF_CloseFont(app.font);
+    app.font =
+        TTF_OpenFont(app.fontPath.c_str(), (int)(app.fontSize * dpi_scale));
+    TTF_SetFontHinting(app.font, TTF_HINTING_LIGHT);
+    last_scale = dpi_scale;
+  }
+
+  for (auto &[c, glyph] : app.glyphCache) {
+    if (glyph.texture)
+      SDL_DestroyTexture(glyph.texture);
+  }
+  app.glyphCache.clear();
+
+  const char *charset = "0123456789ABCDEF "
                         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@"
                         "#$%^&*()_+-=[]{};':\",./<>?\\|`~.";
   SDL_Color white = {255, 255, 255, 255};
 
-  for (char c : charset) {
-    std::string s(1, c);
-    SDL_Surface *surf = TTF_RenderText_Blended(app.font, s.c_str(), 0, white);
+  for (const char *p = charset; *p != '\0'; p++) {
+    char c = *p;
+
+    SDL_Surface *surf = TTF_RenderGlyph_Blended(app.font, (Uint32)c, white);
+
     if (surf) {
-      app.glyphCache[c] = {SDL_CreateTextureFromSurface(renderer, surf),
-                           surf->w, surf->h};
-      app.charW = (float)surf->w;
-      app.charH = (float)surf->h;
+      SDL_Texture *tex = SDL_CreateTextureFromSurface(renderer, surf);
+      if (tex) {
+        SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_LINEAR);
+        app.glyphCache[c] = {tex, surf->w, surf->h};
+
+        if (c == 'A' || app.charW == 0) {
+          app.charW = (float)surf->w / dpi_scale;
+          app.charH = (float)surf->h / dpi_scale;
+        }
+      }
       SDL_DestroySurface(surf);
     }
   }
