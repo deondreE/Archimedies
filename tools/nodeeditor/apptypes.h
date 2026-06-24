@@ -72,6 +72,7 @@ struct Node {
   Color color;
   Rect UI_bounds;
   std::string custom_value = "0.0f";
+  bool needs_body = false;
 };
 
 struct NodePreset {
@@ -81,6 +82,7 @@ struct NodePreset {
   int inputs;
   int outputs;
   std::string code_template;
+  bool needs_body;
 };
 
 struct AppContext {

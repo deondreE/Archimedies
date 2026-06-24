@@ -118,6 +118,8 @@ private:
              sizeof(node.output_count));
     WriteString(os, node.custom_value);
 
+    os.write(reinterpret_cast<const char*>(&node.needs_body), sizeof(node.needs_body));
+
     bool hasInputs = node.inputs.has_value();
     os.write(reinterpret_cast<const char *>(&hasInputs), sizeof(hasInputs));
     if (hasInputs) {
@@ -150,6 +152,8 @@ private:
     is.read(reinterpret_cast<char *>(&node.output_count),
             sizeof(node.output_count));
     node.custom_value = ReadString(is);
+
+    is.read(reinterpret_cast<char *>(&node.needs_body), sizeof(node.needs_body));
 
     bool hasInputs = false;
 

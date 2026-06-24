@@ -66,7 +66,11 @@ void DrawText(AppContext &app, const std::string &text, float x, float y,
   }
 }
 
-Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx) {
+Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx, bool needs_body = false) {
+  if (needs_body) {
+    return {node.UI_bounds.x + (node.UI_bounds.w / 2.0f),
+            node.UI_bounds.y + node.UI_bounds.h};
+  }
   int total_pins = is_output ? node.output_count : node.input_count;
   float x =
       is_output ? (node.UI_bounds.x + node.UI_bounds.w) : node.UI_bounds.x;
@@ -156,9 +160,12 @@ void draw_circle(SDL_Renderer *renderer, float cx, float cy, float radius) {
 
 int g_id_counter = -1;
 int g_selected_node_id = -1;
-Node CreateNodeFromPreset(const NodePreset &preset, MouseState mState) {
+Node CreateNodeFromPreset(const NodePreset &preset, MouseState mState,
+                          std::vector<Node> &nodes,
+                          std::vector<Connection> &connections) {
   g_id_counter++;
-  return {g_id_counter,
+  int parent_id = g_id_counter;
+  Node parent = {g_id_counter,
           preset.default_label,
           preset.type_name,
           std::nullopt,
@@ -166,7 +173,30 @@ Node CreateNodeFromPreset(const NodePreset &preset, MouseState mState) {
           preset.inputs,
           preset.outputs,
           Color(preset.color),
-          {mState.pos.x, mState.pos.y, 150.0f, 100.0f}};
+          {mState.pos.x, mState.pos.y, 150.0f, 100.0f},
+          "",
+          preset.needs_body};
+
+  if (preset.needs_body) {
+    g_id_counter++;
+    int child_id = g_id_counter;
+
+    Node bodyNode = {child_id,
+                       "Body Node",
+                       "Body",
+                       std::nullopt,
+                       std::nullopt,
+                       1, // One input to receive the "body" connection
+                       1,
+                       {35, 35, 35, 255},
+                       {mState.pos.x, mState.pos.y + 150.0f, 500.0f, 250.0f}};
+
+    nodes.push_back(bodyNode);
+
+    connections.push_back({parent_id, 999, child_id, 0});
+  }
+
+  return parent; 
 }
 
 Node CreateNode(const std::string &name, MouseState mState) {
@@ -328,30 +358,47 @@ int main(int argc, char *argv[]) {
           _running = false;
 
         // Delete node if mState.pos is_over a node
-        if (key == SDLK_X)
-          for (auto it = nodes.begin(); it != nodes.end(); ++it) {
-            SDL_FRect r{it->UI_bounds.x, it->UI_bounds.y, it->UI_bounds.w,
-                        it->UI_bounds.h};
-            if (is_point_in_rect(mState.pos.x, mState.pos.y, r)) {
-              // If we are deleting a node that is currently selected.
-              if (it->id == g_selected_node_id) {
-                g_selected_node_id = -1;
-              }
-              nodes.erase(it);
-              CompactNodeIds(nodes, connections);
-              break;
-            }
-          }
+       if (key == SDLK_X) {
+         for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+           SDL_FRect r{it->UI_bounds.x, it->UI_bounds.y, it->UI_bounds.w,
+                       it->UI_bounds.h};
 
-        // Toggle command palette via Meta+P (macOS Cmd+P)
-        if (isCmdPressed && key == SDLK_P) {
-          draw_command_pallete = !draw_command_pallete;
-          if (draw_command_pallete) {
-            SDL_StartTextInput(window);
-            command_pallete_buffer = "";
-          } else {
-            SDL_StopTextInput(window);
-          }
+           if (is_point_in_rect(mState.pos.x, mState.pos.y, r)) {
+             int id_to_delete = it->id;
+             int body_node_id = -1;
+             if (it->needs_body) {
+               for (const auto &conn : connections) {
+                 if (conn.from_node_id == id_to_delete &&
+                     conn.from_pin_idx == 999) {
+                   body_node_id = conn.to_node_id;
+                   break;
+                 }
+               }
+             }
+
+             if (id_to_delete == g_selected_node_id ||
+                 body_node_id == g_selected_node_id) {
+               g_selected_node_id = -1;
+             }
+
+             std::erase_if(nodes, [id_to_delete, body_node_id](const Node &n) {
+               return n.id == id_to_delete || n.id == body_node_id;
+             });
+
+             CompactNodeIds(nodes, connections);
+             break;
+           }
+         }
+       }
+       // Toggle command palette via Meta+P (macOS Cmd+P)
+       if (isCmdPressed && key == SDLK_P) {
+         draw_command_pallete = !draw_command_pallete;
+         if (draw_command_pallete) {
+           SDL_StartTextInput(window);
+           command_pallete_buffer = "";
+         } else {
+           SDL_StopTextInput(window);
+         }
         }
 
         if (draw_command_pallete) {
@@ -382,7 +429,7 @@ int main(int argc, char *argv[]) {
               if (existing) {
                 g_selected_node_id = existing->id;
               } else if (best_match) {
-                nodes.push_back(CreateNodeFromPreset(*best_match, mState));
+                nodes.push_back(CreateNodeFromPreset(*best_match, mState, nodes, connections));
                 g_selected_node_id = nodes.back().id;
               } else {
                 nodes.push_back(CreateNode(command_pallete_buffer, mState));
@@ -429,7 +476,20 @@ int main(int argc, char *argv[]) {
               break;
             }
           }
+
+          if (node.needs_body) {
+            Vector2 p = get_pin_pos(node, true, 0, true);
+            if (is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y, 10.0f)) {
+              dState.is_dragging_connection = true;
+              dState.active_node_id = node.id;
+              dState.active_pin_id = 999; // Add this field to DraggingState
+              dState.start_pos = p;
+              hit_something = true;
+              break;
+            }
+          }
         }
+
 
         // Hit Detection Pass 2: Node Bodies (Movement)
         if (!hit_something) {
@@ -450,6 +510,17 @@ int main(int argc, char *argv[]) {
                 dState.active_node_id = nodes[i].id;
                 dState.drag_offset = {mState.pos.x - nodes[i].UI_bounds.x,
                                       mState.pos.y - nodes[i].UI_bounds.y};
+                if (nodes[i].needs_body) {
+                  for (auto& conn : connections) {
+                    if (conn.from_node_id == nodes[i].id && conn.from_pin_idx == 999) {
+                      Node* body = GetNodeById(nodes, conn.to_node_id);
+                      if (body) {
+                        body->UI_bounds.x += (mState.pos.x - dState.drag_offset.x) - nodes[i].UI_bounds.x;
+                        body->UI_bounds.y += (mState.pos.y - dState.drag_offset.y) - nodes[i].UI_bounds.y;
+                      }
+                    }
+                  }
+                }
               }
               hit_something = true;
               break;
@@ -473,7 +544,7 @@ int main(int argc, char *argv[]) {
                                      10.0f)) {
                 if (dState.active_node_id != node.id) {
                   connections.push_back({dState.active_node_id,
-                                         dState.active_pin_id, node.id, i});
+                                         dState.active_pin_id, node.id, i}); // is_body could be looking for 999
                 }
               }
             }
@@ -501,7 +572,8 @@ int main(int argc, char *argv[]) {
       Node *f = GetNodeById(nodes, conn.from_node_id);
       Node *t = GetNodeById(nodes, conn.to_node_id);
       if (f && t) {
-        draw_bezier(renderer, get_pin_pos(*f, true, conn.from_pin_idx),
+        bool is_body = (conn.from_pin_idx == 999);
+        draw_bezier(renderer, get_pin_pos(*f, true, is_body ? 0 : conn.from_pin_idx),
                     get_pin_pos(*t, false, conn.to_pin_idx), 2.0f);
       }
     }
@@ -534,6 +606,16 @@ int main(int argc, char *argv[]) {
           10, 10
         };
         SDL_RenderFillRect(renderer, &handle);
+      }
+
+      if (node.needs_body) {
+        Vector2 p = get_pin_pos(node, false, 0, true);
+        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+        float radius =
+            is_point_in_circle(mState.pos.x, mState.pos.y, p.x, p.y, 10.0f)
+                ? 7.0f
+                : 4.0f;
+        draw_circle(renderer, p.x, p.y, radius);
       }
 
       // Render Input (Green) and Output (Blue) ports with hover scaling
