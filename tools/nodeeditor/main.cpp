@@ -280,13 +280,16 @@ float GetDisplayScale(SDL_Window *window, SDL_Renderer *renderer) {
   return (win_w > 0) ? (float)rend_w / (float)win_w : 1.0f;
 }
 
+SDL_Cursor *cursorArrow = SDL_GetDefaultCursor();
+SDL_Cursor *cursorResize =
+    SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE);
+
 // 1. Create a helper function above main() or at the top of the file
 void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
                     MouseState &mState, DraggingState &dState) {
   SDL_FRect r{node.UI_bounds.x, node.UI_bounds.y, node.UI_bounds.w,
               node.UI_bounds.h};
 
-  // Body Node Style (The Container)
   if (node.name == "Body Node") {
     SDL_SetRenderDrawColor(renderer, 15, 15, 20, 255);
     SDL_RenderFillRect(renderer, &r);
@@ -325,12 +328,44 @@ void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
     DrawText(app, node.name, node.UI_bounds.x + 10, node.UI_bounds.y + 10,
              {255, 255, 255, 255}, renderer);
 
+    // @Todo: Resize nodes if there custom value is too big,
+    // or just make the line break and resize vertically..
+    if (node.custom_value != "0.0f") {
+      const float M_WIDTH = 10.0f;
+      const float M_HEIGHT = 20.0f;
+      
+      float text_w = (float)node.custom_value.length() * M_WIDTH;
+      float text_needed_w = text_w + 20.0f;
+
+      if (text_needed_w > node.UI_bounds.w) {
+        node.UI_bounds.w = text_needed_w;
+      }
+      
+      float text_x = node.UI_bounds.x + 10.0f;
+      float text_y =
+          node.UI_bounds.y + (node.UI_bounds.h - M_HEIGHT) / 2.0f;
+
+      DrawText(app, "[" + node.custom_value + "]", text_x, text_y,
+               {186, 199, 219, 255}, renderer);
+    }
+
+    if (node.name == "COMMENT") {
+      DrawText(app, node.name, node.UI_bounds.x + 10, node.UI_bounds.y + 10, {0, 0, 0, 255}, renderer);
+
+      SDL_SetRenderDrawColor(renderer, 122, 122, 122, 255);
+      SDL_FRect resize_rect{node.UI_bounds.x + node.UI_bounds.w - 10.0f,
+                            node.UI_bounds.y + node.UI_bounds.h - 10.0f, 10.0f,
+                            10.0f};
+      SDL_RenderFillRect(renderer, &resize_rect);
+    }
+
     // Draw normal pins
     SDL_SetRenderDrawColor(renderer, 80, 220, 80, 255);
     for (int i = 0; i < node.input_count; ++i) {
       Vector2 p = get_pin_pos(node, false, i);
       draw_circle(renderer, p.x, p.y, 4.0f);
     }
+
     SDL_SetRenderDrawColor(renderer, 80, 80, 220, 255);
     for (int i = 0; i < node.output_count; ++i) {
       Vector2 p = get_pin_pos(node, true, i);
