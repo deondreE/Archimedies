@@ -2,6 +2,8 @@
 find_package(SDL3 REQUIRED)
 find_package(SDL3_ttf REQUIRED)
 
+add_library(node_editor_lib NodeEditorContext.cpp NodeEditor.h)
+
 add_executable(node_editor main.cpp NodeTemplates.cpp Helpers.cpp Render.cpp)
 
 target_link_libraries(node_editor
@@ -15,3 +17,4 @@ target_include_directories(node_editor
   /opt/homebrew/include/SDL3_ttf
   .
 )
+target_include_directories(node_editor_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

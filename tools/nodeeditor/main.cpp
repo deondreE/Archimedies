@@ -16,6 +16,7 @@ const int WINDOW_HEIGHT = 920;
 // @TODO: Engine Calls need to be externed at the top of the file.
 // @TODO: Body Nodes should be collapsable.
 // @TODO: Script runner.
+// @TODO: Rendering Batches -> Batch 100 nodes -> However much text -> 2 circle per node. -> Bezier curves per node.
 
 int g_id_counter = -1;
 int g_selected_node_id = -1;
@@ -157,7 +158,6 @@ void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
       draw_circle(renderer, p.x, p.y, 6.0f, wColor);
     }
 
-    // RECURSION: Draw Inner Nodes
     if (node.inner_node.has_value()) {
       for (auto &inner : node.inner_node->nodes) {
         DrawSingleNode(renderer, app, inner, mState, dState);
@@ -243,24 +243,6 @@ int main(int argc, char *argv[]) {
   // corrupt
   if (!NodeSerializer::LoadFromFile("save.data", nodes, connections)) {
     nodes.clear();
-    nodes.push_back({0,
-                     "Node 0",
-                     "Variable",
-                     std::nullopt,
-                     std::nullopt,
-                     0,
-                     1,
-                     {45, 45, 45, 255},
-                     {100.0f, 100.0f, 150.0f, 100.0f}});
-    nodes.push_back({1,
-                     "Node 1",
-                     "Consoe Log",
-                     std::nullopt,
-                     std::nullopt,
-                     1,
-                     0,
-                     {45, 45, 45, 255},
-                     {600.0f, 400.0f, 150.0f, 100.0f}});
   }
 
   // Restore the global ID counter based on the highest ID found in loaded data
