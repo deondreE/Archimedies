@@ -126,4 +126,14 @@ extern bool is_point_in_circle(float px, float py, float cx, float cy,
 extern bool is_point_in_rect(float px, float py, SDL_FRect rect);
 extern Node *FindNodeAtPoint(std::vector<Node> &nodes, Vector2 pos);
 extern void BuildGlyphCache(AppContext &app, SDL_Renderer *renderer);
-extern NodeRegion GetNodeRegion(Vector2 mousePos, const Rect& bounds, float handleSize);
+extern NodeRegion GetNodeRegion(Vector2 mousePos, const Rect &bounds,
+                                float handleSize);
+extern Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx,
+                           bool needs_body = false);
+
+extern void draw_bezier(SDL_Renderer *renderer, Vector2 start, Vector2 end,
+                             float thickness = 2.0f);
+extern void DrawText(AppContext &app, const std::string &text, float x, float y,
+                SDL_Color color, SDL_Renderer *renderer);
+extern void draw_circle(SDL_Renderer *renderer, float cx, float cy,
+                        float radius, SDL_FColor color);

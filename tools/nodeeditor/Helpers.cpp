@@ -95,3 +95,26 @@ NodeRegion GetNodeRegion(Vector2 mousePos, const Rect &bounds, float handleSize 
 
   return NodeRegion::BODY;
 }
+
+Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx,
+                    bool needs_body) {
+  if (needs_body) {
+    return {node.UI_bounds.x + (node.UI_bounds.w / 2.0f),
+            node.UI_bounds.y + node.UI_bounds.h};
+  }
+  int total_pins = is_output ? node.output_count : node.input_count;
+  float x;
+
+  if (node.name == "Body Name") {
+    x = is_output ? (node.UI_bounds.x + node.UI_bounds.w - 10.0f)
+                  : (node.UI_bounds.x + 10.0f);
+  } else {
+    x = is_output ? (node.UI_bounds.x + node.UI_bounds.w) : node.UI_bounds.x;
+  }
+
+  // Distribute pins evenly along the height
+  float section_h = node.UI_bounds.h / (float)(total_pins + 1);
+  float y = node.UI_bounds.y + (section_h * (pin_idx + 1));
+
+  return {x, y};
+}

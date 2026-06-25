@@ -5,7 +5,6 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <cstdio>
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <optional>
 #include <vector>
@@ -14,161 +13,9 @@ const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 920;
 
 // @TODO: Functions need bodies, -> Group of nodes: see excalidraw
-// @TODO: Make body node.
 // @TODO: Engine Calls need to be externed at the top of the file.
+// @TODO: Body Nodes should be collapsable.
 // @TODO: Script runner.
-// @TODO: Nodes should scale to fit their content.
-
-// Iterates through glyph cache to draw strings character by character
-void DrawText(AppContext &app, const std::string &text, float x, float y,
-              SDL_Color color, SDL_Renderer *renderer) {
-  if (text.empty())
-    return;
-
-  // 1. Get the window associated with the renderer safely (SDL3 way)
-  SDL_Window *window = SDL_GetRenderWindow(renderer);
-  int win_w, rend_w;
-
-  if (!SDL_GetWindowSize(window, &win_w, NULL) ||
-      !SDL_GetRenderOutputSize(renderer, &rend_w, NULL)) {
-    return;
-  }
-
-  // 2. Calculate scale (e.g., 0.5 for Retina)
-  float inv_scale = (rend_w > 0) ? (float)win_w / (float)rend_w : 1.0f;
-
-  for (char c : text) {
-    // 3. Skip whitespace but still advance the cursor
-    if (c == ' ') {
-      x += app.charW;
-      continue;
-    }
-
-    char lookup = app.glyphCache.contains(c) ? c : '.';
-    auto it = app.glyphCache.find(lookup);
-    if (it == app.glyphCache.end())
-      continue;
-
-    Glyph &g = it->second;
-
-    // 4. CRITICAL: Set Blend Mode so the alpha channel works
-    SDL_SetTextureBlendMode(g.texture, SDL_BLENDMODE_BLEND);
-    SDL_SetTextureColorMod(g.texture, color.r, color.g, color.b);
-    SDL_SetTextureAlphaMod(g.texture, color.a);
-
-    // 5. Draw using the inverse scale to fit logical coordinates
-    SDL_FRect dest = {x, y, (float)g.w * inv_scale, (float)g.h * inv_scale};
-
-    SDL_RenderTexture(renderer, g.texture, nullptr, &dest);
-
-    // Advance x based on the logical character width
-    x += app.charW;
-  }
-}
-
-Vector2 get_pin_pos(const Node &node, bool is_output, int pin_idx,
-                    bool needs_body = false) {
-  if (needs_body) {
-    return {node.UI_bounds.x + (node.UI_bounds.w / 2.0f),
-            node.UI_bounds.y + node.UI_bounds.h};
-  }
-  int total_pins = is_output ? node.output_count : node.input_count;
-  float x;
-
-  if (node.name == "Body Name") {
-    x = is_output ? (node.UI_bounds.x + node.UI_bounds.w - 10.0f)
-                  : (node.UI_bounds.x + 10.0f);
-  } else {
-    x = is_output ? (node.UI_bounds.x + node.UI_bounds.w) : node.UI_bounds.x;
-  }
-
-  // Distribute pins evenly along the height
-  float section_h = node.UI_bounds.h / (float)(total_pins + 1);
-  float y = node.UI_bounds.y + (section_h * (pin_idx + 1));
-
-  return {x, y};
-}
-
-// Draws a Cubic Bezier curve between ports for professional line look
-void draw_bezier(SDL_Renderer *renderer, Vector2 start, Vector2 end,
-                 float thickness = 2.0f) {
-  float offset = SDL_fabsf(end.x - start.x) / 2.0f;
-  if (offset < 50.0f)
-    offset = 50.0f;
-
-  Vector2 cp1 = {start.x + offset, start.y};
-  Vector2 cp2 = {end.x - offset, end.y};
-
-  float dx = end.x - start.x, dy = end.y - start.y;
-  float approx_len = SDL_sqrtf(dx * dx + dy * dy);
-  int steps = (int)SDL_clamp(approx_len / 4.0f, 20.0f, 120.0f);
-
-  Uint8 r, g, b, a;
-  SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
-  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-  SDL_FColor col = {r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f};
-
-  std::vector<SDL_Vertex> verts;
-  std::vector<int> indices;
-  verts.reserve((steps + 1) * 2);
-  indices.reserve(steps * 6);
-
-  float half = thickness / 2.0f;
-
-  for (int i = 0; i <= steps; i++) {
-    float t = (float)i / (float)steps;
-    float invT = 1.0f - t;
-
-    Vector2 pt = {
-        (invT * invT * invT * start.x) + (3 * invT * invT * t * cp1.x) +
-            (3 * invT * t * t * cp2.x) + (t * t * t * end.x),
-        (invT * invT * invT * start.y) + (3 * invT * invT * t * cp1.y) +
-            (3 * invT * t * t * cp2.y) + (t * t * t * end.y)};
-
-    // Analytic derivative of the cubic bezier — true tangent at this t,
-    // never degenerates to (0,0) the way a backward-difference can at i=0
-    Vector2 d = {
-        3 * invT * invT * (cp1.x - start.x) + 6 * invT * t * (cp2.x - cp1.x) +
-            3 * t * t * (end.x - cp2.x),
-        3 * invT * invT * (cp1.y - start.y) + 6 * invT * t * (cp2.y - cp1.y) +
-            3 * t * t * (end.y - cp2.y)};
-
-    float len = SDL_sqrtf(d.x * d.x + d.y * d.y);
-    if (len < 0.0001f)
-      len = 0.0001f;
-    Vector2 normal = {-d.y / len, d.x / len};
-
-    verts.push_back(
-        {{pt.x + normal.x * half, pt.y + normal.y * half}, col, {0, 0}});
-    verts.push_back(
-        {{pt.x - normal.x * half, pt.y - normal.y * half}, col, {0, 0}});
-
-    if (i > 0) {
-      int base = (i - 1) * 2;
-      // two triangles per segment, forming the quad between this point
-      // and the previous one
-      indices.push_back(base);
-      indices.push_back(base + 1);
-      indices.push_back(base + 2);
-      indices.push_back(base + 1);
-      indices.push_back(base + 3);
-      indices.push_back(base + 2);
-    }
-  }
-
-  SDL_RenderGeometry(renderer, nullptr, verts.data(), (int)verts.size(),
-                     indices.data(), (int)indices.size());
-}
-// Manually draws a filled circle via point-strips
-void draw_circle(SDL_Renderer *renderer, float cx, float cy, float radius) {
-  for (int w = 0; w < radius * 2; w++) {
-    for (int h = 0; h < radius * 2; h++) {
-      float dx = radius - w, dy = radius - h;
-      if ((dx * dx + dy * dy) <= (radius * radius))
-        SDL_RenderPoint(renderer, cx + dx, cy + dy);
-    }
-  }
-}
 
 int g_id_counter = -1;
 int g_selected_node_id = -1;
@@ -280,10 +127,6 @@ float GetDisplayScale(SDL_Window *window, SDL_Renderer *renderer) {
   return (win_w > 0) ? (float)rend_w / (float)win_w : 1.0f;
 }
 
-SDL_Cursor *cursorArrow = SDL_GetDefaultCursor();
-SDL_Cursor *cursorResize =
-    SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE);
-
 // 1. Create a helper function above main() or at the top of the file
 void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
                     MouseState &mState, DraggingState &dState) {
@@ -300,16 +143,18 @@ void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
     DrawText(app, "BODY: " + node.internalFunction, node.UI_bounds.x + 10,
              node.UI_bounds.y - 25, {100, 150, 255, 255}, renderer);
 
+    SDL_FColor iColor = {1.0f, 0.65f, 0.0f, 1.0f};
     // Render Internal Passthrough Pins
     for (int i = 0; i < node.input_count; i++) {
       Vector2 p = get_pin_pos(node, false, i);
-      SDL_SetRenderDrawColor(renderer, 255, 165, 0, 255); // Orange Input
-      draw_circle(renderer, p.x, p.y, 6.0f);
+      
+      draw_circle(renderer, p.x, p.y, 6.0f, iColor);
     }
+
+    SDL_FColor wColor = {1.0f, 0.0f, 1.0f, 1.0f};
     for (int i = 0; i < node.output_count; i++) {
       Vector2 p = get_pin_pos(node, true, i);
-      SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255); // Pink Output
-      draw_circle(renderer, p.x, p.y, 6.0f);
+      draw_circle(renderer, p.x, p.y, 6.0f, wColor);
     }
 
     // RECURSION: Draw Inner Nodes
@@ -328,8 +173,6 @@ void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
     DrawText(app, node.name, node.UI_bounds.x + 10, node.UI_bounds.y + 10,
              {255, 255, 255, 255}, renderer);
 
-    // @Todo: Resize nodes if there custom value is too big,
-    // or just make the line break and resize vertically..
     if (node.custom_value != "0.0f") {
       const float M_WIDTH = 10.0f;
       const float M_HEIGHT = 20.0f;
@@ -360,16 +203,16 @@ void DrawSingleNode(SDL_Renderer *renderer, AppContext &app, Node &node,
     }
 
     // Draw normal pins
-    SDL_SetRenderDrawColor(renderer, 80, 220, 80, 255);
+    SDL_FColor iColor = {0.31f, 0.86f, 0.31f, 1.0f};
     for (int i = 0; i < node.input_count; ++i) {
       Vector2 p = get_pin_pos(node, false, i);
-      draw_circle(renderer, p.x, p.y, 4.0f);
+      draw_circle(renderer, p.x, p.y, 4.0f, iColor);
     }
 
-    SDL_SetRenderDrawColor(renderer, 80, 80, 220, 255);
+    SDL_FColor oColor = {0.31f, 0.31f, 0.86f, 1.0f};
     for (int i = 0; i < node.output_count; ++i) {
       Vector2 p = get_pin_pos(node, true, i);
-      draw_circle(renderer, p.x, p.y, 4.0f);
+      draw_circle(renderer, p.x, p.y, 4.0f, oColor);
     }
   }
 
