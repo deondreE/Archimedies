@@ -3,6 +3,7 @@
 #include "IRenderer.h"
 #include "ITexture.h"
 #include "Scene.h"
+#include "Serializer.h"
 #include <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 #include <Metal/Metal.h>
@@ -14,7 +15,6 @@
 #include <thread>
 #include <utility>
 #include <vector>
-#include "Serializer.h"
 
 namespace arch::core::platform {
 Application::Application(ApplicationConfig config)
@@ -29,17 +29,17 @@ Application::~Application() {
   }
 }
 
-void Application::Run() { 
+void Application::Run() {
   kernel::Entity ent("test");
   std::unique_ptr<kernel::Scene> scene = std::make_unique<kernel::Scene>();
   scene->type = kernel::SceneType::_2d;
   scene->name = "test_scene";
   scene->entities.push_back(std::move(ent));
-  
+
   kernel::Serializer serilizer{std::move(scene)};
   serilizer.Serialize("scene.datatype");
 
-  MacOSMain(); 
+  MacOSMain();
 }
 
 void Application::MacOSMain() {
@@ -98,7 +98,7 @@ void Application::MacOSMain() {
           if (event) {
             if (event.type == NSEventTypeMouseMoved) {
               NSPoint loc = [window mouseLocationOutsideOfEventStream];
-              }
+            }
             [NSApp sendEvent:event];
           }
         } while (event != nil);
@@ -141,10 +141,13 @@ void Application::InitShaders() {
 
 void Application::EngineUpdate() const {
   _renderer->BeginFrame();
+  _renderer->Clear({0.1f, 0.1f, 0.1f, 1.0f});
   if (_testVert && _testFrag) {
     _renderer->BindShader(_testVert);
     _renderer->BindShader(_testFrag);
     _renderer->Draw();
+    _renderer->DrawText("Testing this text thing", 100, 100, 1.0f, 1.0f, 1.0f,
+                        1.0f);
   }
   _renderer->EndFrame();
 }

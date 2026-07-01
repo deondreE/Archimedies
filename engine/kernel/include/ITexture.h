@@ -4,7 +4,7 @@
 
 namespace arch::core::renderer {
 
-enum class TextureFormat { RGB, RGBA, Depth, Stencil };
+enum class TextureFormat { RGB, RGBA, Depth, Stencil, R8 };
 
 enum class TextureWrap { Repeat, Clamp, Mirror };
 
