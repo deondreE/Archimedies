@@ -62,9 +62,6 @@ vertex VertexOut vertex_text(constant VertexIn*  verts      [[buffer(0)]],
 
 fragment float4 fragment_text(VertexOut         in    [[stage_in]],
                               texture2d<float>  atlas [[texture(0)]]) {
-    // The atlas is a raw FreeType grayscale bitmap: 0 = transparent, 1 = solid.
-    // Use the coverage value directly as alpha — this preserves the full
-    // anti-aliasing fringe without artificially thickening strokes.
     constexpr sampler s(filter::linear, address::clamp_to_edge);
     float a = atlas.sample(s, in.texCoord).r;
     return float4(in.color.rgb, in.color.a * a);

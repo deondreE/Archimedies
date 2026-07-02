@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 
-// Monaco ships with every macOS installation and covers all printable ASCII.
 static constexpr const char *kDefaultFontPath =
     "/System/Library/Fonts/Monaco.ttf";
 static constexpr uint32_t kAtlasFontSize = 48;

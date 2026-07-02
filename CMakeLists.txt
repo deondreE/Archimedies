@@ -63,6 +63,7 @@ add_subdirectory(engine)
 add_subdirectory(platform)
 add_subdirectory(tools/hexeditor)
 add_subdirectory(tools/nodeeditor)
+add_subdirectory(tools/texteditor)
 
 
 add_executable(app main.cpp)
