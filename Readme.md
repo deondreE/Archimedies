@@ -20,7 +20,7 @@ And Some debug window to be an Overlay, then renders on top, but recieves mouse 
 - [ ] Text Rendering
 - [ ] 3D Models
 - [ ] Scene Serialization
-- [ ] ImGui Overlay
+- [x] ImGui Overlay
 - [ ] Asset Manager
 - [x] Layer Stack
 - [ ] Scripting
@@ -31,3 +31,5 @@ And Some debug window to be an Overlay, then renders on top, but recieves mouse 
 - [x] Directional Light
 - [ ] Shadows
 - [ ] Post-Processing
+- [ ] Make sure Delta-Time is real deltatime.
+- [ ] IMGuizmo - or Gizmos ourselves.

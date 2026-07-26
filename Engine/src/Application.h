@@ -5,6 +5,7 @@
 #include "Event.h"
 #include "WindowEvents.h"
 #include "LayerStack.h"
+#include "ImGuiLayer.h"
 
 namespace Engine {
 
@@ -44,6 +45,8 @@ namespace Engine {
 		bool InitDx();
 		void OnResize(uint32_t width, uint32_t height);
 
+		void OnWindowResize(WindowResizeEvent& e);
+
 		std::wstring _Name;
 		ApplicationSpecification _Specification;
 		bool _Running = true;
@@ -62,6 +65,7 @@ namespace Engine {
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> _RasterizerState;
 
 		LayerStack _LayerStack;
+		ImGuiLayer* _ImGuiLayer = nullptr;
 	private:
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 

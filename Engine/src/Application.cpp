@@ -6,6 +6,9 @@
 #include "KeyEvent.h"
 #include "MouseEvent.h"
 #include "Event.h"
+#include <windowsx.h>
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Engine {
 	Application::Application(const ApplicationSpecification& spec) 
@@ -125,11 +128,11 @@ namespace Engine {
 		vp.TopLeftY = 0.0f;
 		vp.Width = static_cast<float>(_Width);
 		vp.Height = static_cast<float>(_Height);
-		vp.MaxDepth = 0.0f;
+		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 		_Context->RSSetViewports(1, &vp);
 
-		_Context->OMSetRenderTargets(1, _RenderTargetView.GetAddressOf(), nullptr);
+		_Context->OMSetRenderTargets(1, _RenderTargetView.GetAddressOf(), _DepthStencilView.Get());
 
 		return true;
 	}
@@ -157,7 +160,11 @@ namespace Engine {
 		if (!InitDx()) return;
 
 		Renderer::Init(_Device.Get(), _Context.Get(), _Specification);
+		
+		_ImGuiLayer = new ImGuiLayer(_HWnd, _Device.Get(), _Context.Get());
+		PushOverlay(_ImGuiLayer);
 		OnInit();
+		
 
 		LARGE_INTEGER frequency, lastTime, currentTime;
 		QueryPerformanceFrequency(&frequency);
@@ -200,21 +207,31 @@ namespace Engine {
 			OnRender();
 
 			for (Layer* layer : _LayerStack) {
+				if (layer == _ImGuiLayer) continue;
 				layer->OnRender();
 			}
+
+			// ImGui frame wraps around here: Begin() before any ImGui:: calls, End() after all of them
+			_ImGuiLayer->Begin();
+			for (Layer* layer : _LayerStack) {
+				layer->OnImGuiRender(); // new virtual — see Layer.h update below
+			}
+			_ImGuiLayer->End();
 
 			_SwapChain->Present(1, 0); // VSync
 		}
 
-		for (Layer* layer : _LayerStack) {
-			layer->OnDetach();
-		}
+		//for (Layer* layer : _LayerStack) {
+		//	layer->OnDetach();
+		//}
 
 		Renderer::Shutdown();
 	}
-
-	// @TODO: Fix Mouse Events;
+	
 	LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+		if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam)) // now resolves to ::ImGui_ImplWin32_WndProcHandler correctly, since ADL/lookup finds it in the enclosing global scope
+			return true;
+
 		if (uMsg == WM_NCCREATE) {
 			auto* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
 			auto* app = reinterpret_cast<Application*>(cs->lpCreateParams);
@@ -236,7 +253,7 @@ namespace Engine {
 				uint32_t width = LOWORD(lParam);
 				uint32_t height = HIWORD(lParam);
 				WindowResizeEvent e(width, height);
-				// app->OnWindowResize(e); // internal: recreate buffers first
+				app->OnWindowResize(e); // internal: recreate buffers first
 				app->OnEvent(e);        // then let the derived app react (camera aspect, etc.)
 			}
 			return 0;
@@ -257,10 +274,10 @@ namespace Engine {
 		case WM_RBUTTONDOWN: { MouseButtonPressedEvent e(VK_RBUTTON); app->OnEvent(e); return 0; }
 		case WM_RBUTTONUP: { MouseButtonReleasedEvent e(VK_RBUTTON); app->OnEvent(e); return 0; }
 		case WM_MOUSEMOVE: {
-			//float x = (float)GET_X_LPARAM(lParam);
-			//float y = (float)GET_Y_LPARAM(lParam);
-			 //MouseMovedEvent e(x, y);
-			 // app->OnEvent(e);
+			float x = (float)GET_X_LPARAM(lParam);
+			float y = (float)GET_Y_LPARAM(lParam);
+			MouseMovedEvent e(x, y);
+			app->OnEvent(e);
 			return 0;
 		}
 		case WM_MOUSEWHEEL: {
@@ -309,5 +326,48 @@ namespace Engine {
 		_Context->OMSetRenderTargets(1, _RenderTargetView.GetAddressOf(), nullptr);
 
 		OnViewportResize(width, height);
+	}
+
+	// @AI fix
+	void Application::OnWindowResize(WindowResizeEvent& e) {
+		uint32_t width = e.GetWidth();
+		uint32_t height = e.GetHeight();
+
+		if (width == 0 || height == 0) return;             // minimized, ignore
+		if ((int)width == _Width && (int)height == _Height) return;
+
+		_Width = (int)width;
+		_Height = (int)height;
+
+		if (!_SwapChain) return; // can fire before InitDx() completes
+
+		// Must release everything referencing the back buffer before ResizeBuffers
+		_RenderTargetView.Reset();
+		_DepthStencilView.Reset();
+		_DepthStencilBuffer.Reset();
+		_Context->OMSetRenderTargets(0, nullptr, nullptr);
+
+		HRESULT hr = _SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+		if (FAILED(hr)) {
+			LOG_ERROR("ResizeBuffers failed. HRESULT: 0x%08X", hr);
+			return;
+		}
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
+		_SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
+		_Device->CreateRenderTargetView(backBuffer.Get(), nullptr, &_RenderTargetView);
+
+		if (!CreateDepthStencil(width, height)) return;
+
+		D3D11_VIEWPORT vp = {};
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.Width = (float)width;
+		vp.Height = (float)height;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		_Context->RSSetViewports(1, &vp);
+
+		_Context->OMSetRenderTargets(1, _RenderTargetView.GetAddressOf(), _DepthStencilView.Get());
 	}
 }

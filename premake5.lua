@@ -23,17 +23,27 @@ project "Engine"
     pchheader "archpch.h"
     pchsource "Engine/src/archpch.cpp"
 
+
     files 
     { 
         "Engine/src/**.h", 
-        "Engine/src/**.cpp" 
+        "Engine/src/**.cpp",
+        "Engine/Vendor/imgui/**.cpp",
+        "Engine/Vendor/imgui/backends/**.cpp",
     }
+
+    filter "files:Engine/Vendor/**.cpp"
+        enablepch ("Off")
+    filter {}
 
     includedirs 
     { 
         "Engine/src",
-        "Engine/Vendor"
+        "Engine/Vendor",
+        "Engine/Vendor/imgui",
+        "Engine/Vendor/imgui/backends",
     }
+    
 
     links { "d3d11.lib", "dxgi.lib", "d3dcompiler.lib" }
 
@@ -57,12 +67,15 @@ project "Sandbox"
     files 
     { 
         "Sandbox/src/**.h", 
-        "Sandbox/src/**.cpp" 
+        "Sandbox/src/**.cpp"
     }
 
     includedirs 
     { 
-        "Engine/src" 
+        "Engine/src",
+        "Engine/Vendor",
+        "Engine/Vendor/imgui",
+        "Engine/Vendor/imgui/backends"
     }
 
     links 

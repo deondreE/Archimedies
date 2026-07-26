@@ -7,6 +7,7 @@
 #include "Material.h"
 #include "Scene.h"
 #include "WindowEvents.h"
+#include "imgui.h"
 
 class SandboxLayer : public Engine::Layer {
 public:
@@ -56,6 +57,22 @@ public:
             _Camera->OnResize(re.GetWidth(), re.GetHeight());
             return false;
             });
+    }
+
+    virtual void OnImGuiRender() override {
+        ImGui::Begin("Debug");
+        // @TODO: Return this deltatime from the engine.
+        ImGui::Text("Frame Time: %.3f ms", ImGui::GetIO().DeltaTime * 1000.0f);
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::Text("Entities: %zu", _Scene->GetEntities().size());
+
+        auto& light = Engine::Renderer::GetLight();
+        ImGui::SliderFloat3("Light Direction", &light.Direction.x, -1.0f, 1.0f);
+        ImGui::SliderFloat("Intensity", &light.Itensity, 0.0f, 5.0f);
+        ImGui::SliderFloat("Ambient", &light.AmbientStrength, 0.0f, 1.0f);
+        ImGui::ColorEdit3("Light Color", light.Color);
+
+        ImGui::End();
     }
 private:
     Engine::Scene* _Scene;
