@@ -134,6 +134,24 @@ namespace Engine {
 		return true;
 	}
 
+	// Layers
+	void Application::PushLayer(Layer* layer) {
+		_LayerStack.PushLayer(layer);
+	}
+
+	void Application::PushOverlay(Layer* layer) {
+		_LayerStack.PushOverlay(layer);
+	}
+
+	void Application::OnEvent(Event& e) {
+		// Reverse iteration: topmost layer (overlays, e.g. future ImGui) sees the event FIRST,
+		// and can mark it Handled to stop it propagating further down to the game layer.
+		for (auto it = _LayerStack.rbegin(); it != _LayerStack.rend(); ++it) {
+			if (e.Handled) break;
+			(*it)->OnEvent(e);
+		}
+	}
+
 	void Application::Run() {
 		if (!InitWindow()) return;
 		if (!InitDx()) return;
@@ -171,19 +189,31 @@ namespace Engine {
 
 			OnUpdate(ts);
 
+			for (Layer* layer : _LayerStack) {
+				layer->OnUpdate(ts);
+			}
+
 			float clearColor[] = { 0.1f, 0.15f, 0.2f, 1.0f };
 			_Context->ClearRenderTargetView(_RenderTargetView.Get(), clearColor);
 			_Context->ClearDepthStencilView(_DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 			
 			OnRender();
 
+			for (Layer* layer : _LayerStack) {
+				layer->OnRender();
+			}
 
 			_SwapChain->Present(1, 0); // VSync
+		}
+
+		for (Layer* layer : _LayerStack) {
+			layer->OnDetach();
 		}
 
 		Renderer::Shutdown();
 	}
 
+	// @TODO: Fix Mouse Events;
 	LRESULT CALLBACK Application::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (uMsg == WM_NCCREATE) {
 			auto* cs = reinterpret_cast<CREATESTRUCT*>(lParam);

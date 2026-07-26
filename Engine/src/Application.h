@@ -4,6 +4,7 @@
 #include "Timestep.h"
 #include "Event.h"
 #include "WindowEvents.h"
+#include "LayerStack.h"
 
 namespace Engine {
 
@@ -26,8 +27,11 @@ namespace Engine {
 		virtual void OnInit() {}
 		virtual void OnUpdate(Timestep ts) {}
 		virtual void OnRender() {}
-		virtual void OnEvent(Event& e) {}
+		virtual void OnEvent(Event& e);
 		virtual void OnViewportResize(uint32_t width, uint32_t height) {}
+
+		void PushLayer(Layer* layer);
+		void PushOverlay(Layer* overlay);
 
 		const ApplicationSpecification& GetSpecification() const { return _Specification; }
 		ID3D11Device* GetDevice() const { return _Device.Get(); }
@@ -56,6 +60,8 @@ namespace Engine {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> _DepthStencilBuffer;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> _DepthStencilView;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> _RasterizerState;
+
+		LayerStack _LayerStack;
 	private:
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
