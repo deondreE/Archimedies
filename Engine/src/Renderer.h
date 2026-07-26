@@ -2,6 +2,7 @@
 #include "archpch.h"
 #include "Scene.h"
 #include "ShaderLibrary.h"
+#include "Light.h";
 
 namespace Engine {
 
@@ -15,7 +16,7 @@ namespace Engine {
 		ID3D11InputLayout* Layout;
 		ID3D11ShaderResourceView* SRV;
 		ID3D11SamplerState* Sampler;
-		Math::Mat4 Transform;
+		Math::Mat4 Transform; // World Matrix
 	};
 
 	struct ApplicationSpecification;
@@ -31,8 +32,25 @@ namespace Engine {
 		static void Submit(const Entity& entity);
 
 		static ShaderLibrary& GetShaderLibrary() { return s_Data->Shaders; }
+		static DirectionalLight& GetLight() { return s_Data->Light; }
 	private:
 		static void Flush();
+
+		struct SceneConstants {
+			Math::Mat4 ViewProjection;
+			float LightDirection[3];
+			float _Pad0;
+			float LightColor[3];
+			float LightIntensity;
+			float AmbientStrength;
+			float _Pad1;
+		};
+		static_assert(sizeof(SceneConstants) % 16 == 0, "SceneConstants must be 16-byte aligned"); 
+
+		struct EntityConstants {
+			Math::Mat4 World;
+		};
+		static_assert(sizeof(EntityConstants) % 16 == 0, "EntityConstants must be 16-byte aligned");
 
 		struct RendererData {
 			ID3D11Device* Device;
@@ -45,11 +63,12 @@ namespace Engine {
 			Microsoft::WRL::ComPtr<ID3D11Buffer> SceneCB;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> EntityCB;
 
-			std::shared_ptr<Texture2D> WhiteTexture;
-
 			Math::Mat4 ViewProjection;
+			DirectionalLight Light;
+
 			std::vector<RenderCommand> CommandQueue;
 			ShaderLibrary Shaders;
+			std::shared_ptr<Texture2D> WhiteTexture;
 		};
 
 		static RendererData* s_Data;

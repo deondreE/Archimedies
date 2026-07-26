@@ -7,6 +7,7 @@ namespace Engine {
 		Math::Vec3 Position;
 		float Color[4];
 		float UV[2];
+		float Normal[3];
 	};
 
 	class Mesh {
