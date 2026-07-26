@@ -24,5 +24,6 @@ editor expirence.
 - [ ] Multi-Material Meshes
 - [ ] Skybox
 - [ ] Lighting
+- [x] Directional Light
 - [ ] Shadows
 - [ ] Post-Processing
