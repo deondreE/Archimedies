@@ -1,6 +1,7 @@
 #pragma once
 #include "archpch.h"
 #include "Scene.h"
+#include "ShaderLibrary.h"
 
 namespace Engine {
 
@@ -28,6 +29,8 @@ namespace Engine {
 		static void EndScene();
 
 		static void Submit(const Entity& entity);
+
+		static ShaderLibrary& GetShaderLibrary() { return s_Data->Shaders; }
 	private:
 		static void Flush();
 
@@ -46,6 +49,7 @@ namespace Engine {
 
 			Math::Mat4 ViewProjection;
 			std::vector<RenderCommand> CommandQueue;
+			ShaderLibrary Shaders;
 		};
 
 		static RendererData* s_Data;

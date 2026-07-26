@@ -145,6 +145,9 @@ namespace Engine {
 		QueryPerformanceFrequency(&frequency);
 		QueryPerformanceCounter(&lastTime);
 
+		float shaderCheckTimer = 0.0f;
+		constexpr float shaderCheckInterval = 0.5f; // twice a second plenty for manual edit.
+
 		MSG msg = { 0 };
 		while (_Running) {
 			while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -159,6 +162,13 @@ namespace Engine {
 			
 			// Defend against large spiks in time: (Resume after breakpoint, Window Drag)
 			Timestep ts(std::min(deltaSeconds, 0.1f));
+
+			shaderCheckTimer += ts.GetSeconds();
+			if (shaderCheckTimer >= shaderCheckInterval) {
+				shaderCheckTimer = 0.0f;
+				Renderer::GetShaderLibrary().CheckForChanges(_Device.Get());
+			}
+
 			OnUpdate(ts);
 
 			float clearColor[] = { 0.1f, 0.15f, 0.2f, 1.0f };
@@ -217,10 +227,10 @@ namespace Engine {
 		case WM_RBUTTONDOWN: { MouseButtonPressedEvent e(VK_RBUTTON); app->OnEvent(e); return 0; }
 		case WM_RBUTTONUP: { MouseButtonReleasedEvent e(VK_RBUTTON); app->OnEvent(e); return 0; }
 		case WM_MOUSEMOVE: {
-			//float x = (float)GET_XL(lParam);
+			//float x = (float)GET_X_LPARAM(lParam);
 			//float y = (float)GET_Y_LPARAM(lParam);
-			// MouseMovedEvent e(x, y);
-			// app->OnEvent(e);
+			 //MouseMovedEvent e(x, y);
+			 // app->OnEvent(e);
 			return 0;
 		}
 		case WM_MOUSEWHEEL: {

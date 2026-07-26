@@ -11,10 +11,11 @@ public:
     Sandbox() : Application(MakeSpec()) {}
 
     virtual void OnInit() override {
-        auto shader = Engine::Shader::Create(GetDevice(), _Specification.WorkingDirectory + L"/Shaders/Basic.hlsl");
-
+        auto& shaders = Engine::Renderer::GetShaderLibrary();
+        auto basicShader = shaders.Load(GetDevice(), "Basic", _Specification.WorkingDirectory + L"/Shaders/Basic.hlsl");
+        
         auto texture = Engine::Texture2D::Create(GetDevice(), "../Sandbox/Assets/test.png");
-        auto material = std::make_shared<Engine::Material>(shader, texture);
+        auto material = std::make_shared<Engine::Material>(basicShader, texture);
 
         std::vector<Engine::Vertex> verts = {
             { {  0.0f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },

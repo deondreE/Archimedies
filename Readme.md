@@ -8,7 +8,7 @@ editor expirence.
 ## TODO:
 
 - [ ] Cora Integration
-- [ ] Shader Library
+- [x] Shader Library
 - [ ] Animation
 - [ ] 2D Renderer
 - [ ] Audio
