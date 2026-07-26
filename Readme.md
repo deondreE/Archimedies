@@ -7,9 +7,22 @@ editor expirence.
 
 ## TODO:
 
-- [ ] Physics
-- [ ] Plug Cora into this.
-- [ ] Shader things
+- [ ] Cora Integration
+- [ ] Shader Library
 - [ ] Animation
-- [ ] 2D
-- [ ] 3D
+- [ ] 2D Renderer
+- [ ] Audio
+- [ ] Gamepad Input
+- [ ] Text Rendering
+- [ ] 3D Models
+- [ ] Scene Serialization
+- [ ] ImGui Overlay
+- [ ] Asset Manager
+- [ ] Layer Stack
+- [ ] Scripting
+- [ ] Editor UI
+- [ ] Multi-Material Meshes
+- [ ] Skybox
+- [ ] Lighting
+- [ ] Shadows
+- [ ] Post-Processing
