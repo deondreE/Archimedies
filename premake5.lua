@@ -45,7 +45,7 @@ project "Engine"
     }
     
 
-    links { "d3d11.lib", "dxgi.lib", "d3dcompiler.lib" }
+    links { "d3d11.lib", "d3d12.lib", "dxgi.lib", "d3dcompiler.lib" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }

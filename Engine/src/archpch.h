@@ -9,8 +9,14 @@
 #include <windows.h>
 
 // DirectX
+#if ARCH_RENDERER_D3D12
+#include <d3d12.h>
+#include <dxgi_6.h>
+#include "d3dx12.h"
+#else
 #include <d3d11.h>
 #include <dxgi.h>
+#endif
 #include <d3dcompiler.h>
 #include <wrl.h>
 
@@ -34,4 +40,8 @@
 // IMGUI
 #include "imgui.h"
 #include "backends/imgui_impl_win32.h"
+#if ARCH_RENDERER_DX
+#include "backends/imgui_impl_dx12.h"
+#else
 #include "backends/imgui_impl_dx11.h"
+#endif

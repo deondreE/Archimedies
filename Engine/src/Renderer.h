@@ -4,6 +4,11 @@
 #include "ShaderLibrary.h"
 #include "Light.h"
 
+// If flipped to 1 then the Application will use D3D12
+#ifndef ARCH_RENDERER_D3D12
+#define ARCH_RENDERER_D3D12 0
+#endif 
+
 namespace Engine {
 
 	struct RenderCommand {

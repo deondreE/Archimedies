@@ -26,7 +26,12 @@ namespace Engine {
 #endif	
 	}
 
-	Application::~Application() {}
+	Application::~Application() {
+#if ARCH_RENDERER_D3D12
+		if (_Device) WaitForGpu();
+		if (_FenceEvent) CloseHandle(_FenceEvent);
+#endif
+	}
 
 	bool Application::InitWindow()
 	{
@@ -301,44 +306,6 @@ namespace Engine {
 		}
 		}
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	}
-
-	void Application::OnResize(uint32_t width, uint32_t height) {
-		if (width == 0 || height == 0) return;             // minimized, ignore
-		if ((int)width == _Width && (int)height == _Height) return;
-
-		_Width = (int)width;
-		_Height = (int)height;
-
-		if (!_SwapChain) return; // can fire before InitDx() completes
-
-		// Must release everything referencing the back buffer before ResizeBuffers
-		_RenderTargetView.Reset();
-		_DepthStencilView.Reset();
-		_DepthStencilBuffer.Reset();
-		_Context->OMSetRenderTargets(0, nullptr, nullptr);
-
-		HRESULT hr = _SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-		if (FAILED(hr)) return;
-
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-		_SwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-		_Device->CreateRenderTargetView(backBuffer.Get(), nullptr, &_RenderTargetView);
-
-		if (!CreateDepthStencil(width, height)) return;
-
-		D3D11_VIEWPORT vp = {};
-		vp.TopLeftX = 0.0f;
-		vp.TopLeftY = 0.0f;
-		vp.Width = (float)width;
-		vp.Height = (float)height;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		_Context->RSSetViewports(1, &vp);
-
-		_Context->OMSetRenderTargets(1, _RenderTargetView.GetAddressOf(), nullptr);
-
-		OnViewportResize(width, height);
 	}
 
 	// @AI fix
