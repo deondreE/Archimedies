@@ -1,3 +1,6 @@
 [submodule "Engine/Vendor/zlib"]
 	path = Engine/Vendor/zlib
 	url = https://github.com/deondreE/zlib.git
+[submodule "Engine/Vendor/json"]
+	path = Engine/Vendor/json
+	url = https://github.com/nlohmann/json.git
