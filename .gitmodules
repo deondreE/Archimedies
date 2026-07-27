@@ -4,3 +4,6 @@
 [submodule "Engine/Vendor/json"]
 	path = Engine/Vendor/json
 	url = https://github.com/nlohmann/json.git
+[submodule "Engine/Vendor/gltf"]
+	path = Engine/Vendor/gltf
+	url = https://github.com/syoyo/tinygltf.git

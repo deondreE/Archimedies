@@ -16,6 +16,9 @@ namespace Engine {
 		void DrawGrid();
 
 		std::shared_ptr<Texture2D> GetOrLoadThumbnail(const fs::path& path);
+		std::shared_ptr<Texture2D> _MeshIconTexture;
+		std::shared_ptr<Texture2D> _FileIconTexture;
+		std::shared_ptr<Texture2D> _DirIconTexture;
 
 		ID3D11Device* _Device;
 		fs::path _AssetRoot;

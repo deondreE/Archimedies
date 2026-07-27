@@ -2,6 +2,7 @@
 #include "EditorLayer.h"
 #include "Renderer.h" 
 #include "Input.h"
+#include "imgui_internal.h"
 
 namespace Engine {
 
@@ -100,6 +101,47 @@ namespace Engine {
 			ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 			ImGui::Text("Entities: %zu", entities.size());
 			ImGui::End();
-		}		
+		}
+
+		ImGuiID dockspaceID = ImGui::GetID("MainDockSpace");
+		ImGuiDockNode* centralNode = ImGui::DockBuilderGetCentralNode(dockspaceID);
+
+		if (centralNode) {
+			ImGui::SetNextWindowPos(centralNode->Pos);
+			ImGui::SetNextWindowSize(centralNode->Size);
+
+			ImGuiWindowFlags flags =
+				ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground |
+				ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking |
+				ImGuiWindowFlags_NoNavFocus; 
+
+			ImGui::Begin("ViewportDropTarget", nullptr, flags);
+
+				ImGui::InvisibleButton("##viewportdrop", centralNode->Size);
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("CONTENT_BROWSER_MESH")) {
+					std::string path((const char*)payload->Data, payload->DataSize - 1);
+					LOG_INFO("Dropped mesh into scene: %s", path.c_str());
+
+					// @Todo: Add Default Material.
+					// This will not work until the default material can be made.
+					auto t = _Scene->CreateEntity("test");
+					t.Mesh = Mesh::LoadFromFile(_Device, path);
+				}
+				if (const ImGuiPayload* payload =
+					ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXTURE")) {
+					std::string path((const char*)payload->Data, payload->DataSize - 1);
+					LOG_INFO("Dropped texture into scene: %s", path.c_str());
+
+					// @Todo: Add Support for 2D entities.
+				}
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::End();
+		}
 	}
 }

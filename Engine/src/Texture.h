@@ -5,7 +5,7 @@ namespace Engine {
 
 	class Texture2D {
 	public:
-		static std::shared_ptr<Texture2D> Create(ID3D11Device* device, const std::string& path);
+		static std::shared_ptr<Texture2D> Create(ID3D11Device* device, const std::string& path, bool flip_vertically = true);
 		static std::shared_ptr<Texture2D> CreateSolidColor(ID3D11Device* device, uint32_t rgba);
 		static std::shared_ptr<Texture2D> CreateFromRGBA(ID3D11Device* device, uint32_t width, uint32_t height, const uint8_t* pixels);
 

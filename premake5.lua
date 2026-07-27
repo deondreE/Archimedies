@@ -37,7 +37,7 @@ project "Engine"
     location "Engine"
     kind "StaticLib"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++23"
     staticruntime "off"
     system "Windows"
     linkoptions { "/ignore:4006" }
@@ -64,7 +64,8 @@ project "Engine"
         "Engine/Vendor/imgui",
         "Engine/Vendor/imgui/backends",
         "Engine/Vendor/zlib",
-        "Engine/Vendor/json/include" 
+        "Engine/Vendor/json/include",
+		"Engine/Vendor/gltf" 
 	}
 
     links 
@@ -88,7 +89,7 @@ project "Sandbox"
     location "Sandbox"
     kind "ConsoleApp"
     language "C++"
-    cppdialect "C++20"
+    cppdialect "C++23"
     system "Windows"
 
     files { "Sandbox/src/**.h", "Sandbox/src/**.cpp" }
@@ -100,7 +101,8 @@ project "Sandbox"
         "Engine/Vendor/imgui",
         "Engine/Vendor/imgui/backends",
         "Engine/Vendor/zlib",
-        "Engine/Vendor/json/include" 
+        "Engine/Vendor/json/include",
+		"Engine/Vendor/gltf" 
 	}
 
     links { "Engine" }

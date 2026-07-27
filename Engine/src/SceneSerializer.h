@@ -27,7 +27,7 @@ namespace Engine {
                 };
 
                 if (entity.Mesh)
-                    e["MeshPath"] = "path/to/mesh.obj"; // Placeholder
+                    e["MeshPath"] = entity.Mesh->GetPath(); 
 
                 root["Entities"].push_back(e);
             }

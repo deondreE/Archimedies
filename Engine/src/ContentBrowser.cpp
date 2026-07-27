@@ -1,6 +1,7 @@
 #include "archpch.h"
 #include "ContentBrowser.h"
 #include "AssetLoaders/AsespriteLoader.h"
+#include "Mesh.h"
 
 namespace Engine {
 
@@ -16,7 +17,6 @@ namespace Engine {
 		fs::path resolved = fs::absolute(assetRoot, ec);
 
 		
-
 		if (ec) {
 			LOG_ERROR("ContentBrowserPanel: failed to resolve asset root '%s': %s",
 			assetRoot.string().c_str(), ec.message().c_str());
@@ -24,6 +24,14 @@ namespace Engine {
 		}
 		_AssetRoot = resolved;
 		_CurrentDir = resolved;
+		
+		// @Todo: make this a table or vector.
+		fs::path meshIconPath = _AssetRoot / "Resources" / "Icons" / "MeshIcon.png";
+		fs::path dirIconPath = _AssetRoot / "Resources" / "Icons" / "DirIcon.png";
+		fs::path fileIconPath = _AssetRoot / "Resources" / "Icons" / "FileIcon.png";
+		_MeshIconTexture = Texture2D::Create(_Device, meshIconPath.string(), false);
+		_DirIconTexture = Texture2D::Create(_Device, dirIconPath.string(), false);
+		_FileIconTexture = Texture2D::Create(_Device, fileIconPath.string(), false);
 	}
 
 	std::shared_ptr<Texture2D> ContentBrowserPanel::GetOrLoadThumbnail(const fs::path& path) {
@@ -57,10 +65,14 @@ namespace Engine {
 					sprite->Frames[0].CompositePixels.data());
 			}
 		}
+		else if (ext == ".glb" || ext == ".gltf" || ext == ".obj" || ext == ".fbx") {
+			return _MeshIconTexture;
+		}
 		else {
 			texture = Texture2D::Create(
 				_Device,
-				key);
+				key,
+				false);
 		}
 
 		if (!texture)
@@ -133,7 +145,8 @@ namespace Engine {
 				ImGui::PushID(filename.c_str());
 
 				if (entry.is_directory()) {
-					if (ImGui::Button("[Dir]", ImVec2(_ThumbnailSize, _ThumbnailSize))) {
+					if (ImGui::ImageButton(filename.c_str(), (ImTextureID)_DirIconTexture->GetSRV(),
+						ImVec2(_ThumbnailSize, _ThumbnailSize))) {
 						// single check just selects the button visually.
 					}
 					if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
@@ -163,16 +176,23 @@ namespace Engine {
 				}
 				else {
 					std::string ext = path.extension().string();
-					const char* icon = "[File]";
+					std::shared_ptr<Texture2D> iconTexture = _FileIconTexture;
 					const char* payloadType = "CONTENT_BROWSER_ITEM";
-					if (ext == "hlsl" || ext == "glsl" || ext == "metal") { icon = "[Shdr]";  payloadType = "CONTENT_BROWSER_SHADER"; }
-					else if (ext == ".obj" || ext == ".fbx" || ext == ".glb") { icon = "[Mesh]"; payloadType = "CONTENT_BROWSER_MESH"; }
+					if (ext == ".hlsl" || ext == ".glsl" || ext == ".metal") { payloadType = "CONTENT_BROWSER_SHADER"; }
+					else if (ext == ".obj" || ext == ".fbx" || ext == ".glb" || ext == ".gltf") { iconTexture = GetOrLoadThumbnail(path); payloadType = "CONTENT_BROWSER_MESH"; }
 
-					ImGui::Button(icon, ImVec2(_ThumbnailSize, _ThumbnailSize));
-
+					if (iconTexture) {
+						ImGui::ImageButton(filename.c_str(), (ImTextureID)iconTexture->GetSRV(),
+							ImVec2(_ThumbnailSize, _ThumbnailSize));
+					}
+					
 					if (ImGui::BeginDragDropSource()) {
 						std::string fullPath = path.string();
-						ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", fullPath.c_str(), fullPath.size() + 1);
+						ImGui::SetDragDropPayload(payloadType, fullPath.c_str(), fullPath.size() + 1);
+						if (iconTexture) {
+							ImGui::Image((ImTextureID)iconTexture->GetSRV(), ImVec2(32, 32));
+							ImGui::SameLine();
+						}
 						ImGui::Text("%s", filename.c_str());
 						ImGui::EndDragDropSource();
 					}

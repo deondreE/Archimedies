@@ -4,9 +4,9 @@
 
 namespace Engine {
 
-	std::shared_ptr<Texture2D> Texture2D::Create(ID3D11Device* device, const std::string& path) {
+	std::shared_ptr<Texture2D> Texture2D::Create(ID3D11Device* device, const std::string& path, bool flip_vertically) {
 		int width, height, channels;
-		stbi_set_flip_vertically_on_load(true); // matches typical UV convention (0,0 = top-left in D3D)
+		stbi_set_flip_vertically_on_load(flip_vertically); // matches typical UV convention (0,0 = top-left in D3D)
 
 		stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 		if (!data) {

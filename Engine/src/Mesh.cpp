@@ -1,13 +1,19 @@
 #include "archpch.h"
 #include "Mesh.h"
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "tiny_gltf.h"
+
 namespace Engine {
 
     std::shared_ptr<Mesh> Mesh::Create(ID3D11Device* device,
         const std::vector<Vertex>& vertices,
-        const std::vector<uint32_t>& indices)
+        const std::vector<uint32_t>& indices,
+        const std::string& path)
     {
         auto mesh = std::make_shared<Mesh>();
+        mesh->_FilePath = path;
         HRESULT hr;
 
         D3D11_BUFFER_DESC vbd = {};
@@ -38,5 +44,83 @@ namespace Engine {
 
         mesh->_IndexCount = (uint32_t)indices.size();
         return mesh;
+    }
+
+    std::shared_ptr<Mesh> Mesh::LoadFromFile(ID3D11Device* device, const std::string& filepath) {
+        tinygltf::Model model;
+        tinygltf::TinyGLTF loader;
+        std::string err, warn;
+
+        bool isBinary = filepath.substr(filepath.find_last_of(".") + 1) == "glb";
+        bool success = isBinary ?
+            loader.LoadBinaryFromFile(&model, &err, &warn, filepath) :
+            loader.LoadASCIIFromFile(&model, &err, &warn, filepath);
+
+        if (!success) {
+            LOG_ERROR("TinyGLTF Error: %s", err.c_str());
+            return nullptr;
+        }
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+        // Direct access to the first mesh and primitive
+        const auto& mesh = model.meshes[0];
+        const auto& primitive = mesh.primitives[0];
+
+        // 1. Extract Positions
+        const auto& posAccessor = model.accessors[primitive.attributes.at("POSITION")];
+        const auto& posBufferView = model.bufferViews[posAccessor.bufferView];
+        const auto& posBuffer = model.buffers[posBufferView.buffer];
+        const float* posData = reinterpret_cast<const float*>(&(posBuffer.data[posBufferView.byteOffset + posAccessor.byteOffset]));
+        vertices.resize(posAccessor.count);
+
+        // 2. Extract Normals (if they exist)
+        const float* normalData = nullptr;
+        if (primitive.attributes.count("NORMAL")) {
+            const auto& acc = model.accessors[primitive.attributes.at("NORMAL")];
+            const auto& view = model.bufferViews[acc.bufferView];
+            normalData = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[view.byteOffset + acc.byteOffset]));
+        }
+
+        // 3. Extract TexCoords (UVs)
+        const float* uvData = nullptr;
+        if (primitive.attributes.count("TEXCOORD_0")) {
+            const auto& acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+            const auto& view = model.bufferViews[acc.bufferView];
+            uvData = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[view.byteOffset + acc.byteOffset]));
+        }
+
+        // Interleave data into your Vertex struct
+        for (size_t i = 0; i < posAccessor.count; ++i) {
+            vertices[i].Position = { posData[i * 3], posData[i * 3 + 1], posData[i * 3 + 2] };
+
+            if (normalData) {
+                vertices[i].Normal[0] = normalData[i * 3];
+                vertices[i].Normal[1] = normalData[i * 3 + 1];
+                vertices[i].Normal[2] = normalData[i * 3 + 2];
+            }
+
+            if (uvData) {
+                vertices[i].UV[0] = uvData[i * 2];
+                vertices[i].UV[1] = uvData[i * 2 + 1];
+            }
+        }
+
+        // 4. Extract Indices
+        const auto& indexAccessor = model.accessors[primitive.indices];
+        const auto& indexBufferView = model.bufferViews[indexAccessor.bufferView];
+        const auto& indexBuffer = model.buffers[indexBufferView.buffer];
+        const void* dataPtr = &(indexBuffer.data[indexBufferView.byteOffset + indexAccessor.byteOffset]);
+
+        if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+            const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
+            indices.assign(buf, buf + indexAccessor.count);
+        }
+        else if (indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+            const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
+            for (size_t i = 0; i < indexAccessor.count; ++i) indices.push_back(buf[i]);
+        }
+
+        return Create(device, vertices, indices, filepath);
     }
 }

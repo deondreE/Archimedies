@@ -54,9 +54,10 @@ namespace Engine {
 
 		windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize
 			| ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus
-			| ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar;
+			| ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoInputs;
 
 		ImGui::Begin("DockSpaceHost", nullptr, windowFlags);
+
 		ImGui::PopStyleVar(3);
 
 		ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
