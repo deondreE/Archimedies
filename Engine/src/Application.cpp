@@ -385,12 +385,24 @@ namespace Engine {
 			if (deltaSeconds < 0.0) deltaSeconds = 0.0; // Guard against rare QPC jitter
 
 			Timestep ts(static_cast<float>(deltaSeconds));
+			static float accumulator = 0.0f;
+			Timestep fixedTS = Timestep::Fixed(60.0f);
+
+			accumulator += ts.GetSeconds();
+
+			while (accumulator >= fixedTS) {
+				OnFixedUpdate(fixedTS);
+				accumulator -= fixedTS;
+			}
 
 			shaderCheckTimer += ts.GetSeconds();
 			if (shaderCheckTimer >= shaderCheckInterval) {
 				shaderCheckTimer = 0.0f;
 				Renderer::GetShaderLibrary().CheckForChanges(_Device.Get());
 			}
+
+			float alpha = Timestep::GetAlpha(accumulator, fixedTS);
+			// OnRender(alpha);
 
 			OnUpdate(ts);
 

@@ -27,6 +27,7 @@ namespace Engine {
 		void Run();
 		virtual void OnInit() {}
 		virtual void OnUpdate(Timestep ts) {}
+		virtual void OnFixedUpdate(Timestep ts) {}
 		virtual void OnRender() {}
 		virtual void OnEvent(Event& e);
 		virtual void OnViewportResize(uint32_t width, uint32_t height) {}
