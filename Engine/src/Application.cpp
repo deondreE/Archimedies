@@ -360,8 +360,9 @@ namespace Engine {
 		OnInit();
 		
 
-		LARGE_INTEGER frequency, lastTime, currentTime;
+		LARGE_INTEGER frequency, lastTime;
 		QueryPerformanceFrequency(&frequency);
+		double invFrequency = 1.0 / static_cast<double>(frequency.QuadPart);
 		QueryPerformanceCounter(&lastTime);
 
 		float shaderCheckTimer = 0.0f;
@@ -375,12 +376,15 @@ namespace Engine {
 				DispatchMessage(&msg);
 			}
 
+			LARGE_INTEGER currentTime;
 			QueryPerformanceCounter(&currentTime);
-			float deltaSeconds = static_cast<float>(currentTime.QuadPart - lastTime.QuadPart) / static_cast<float>(frequency.QuadPart);
+			double deltaSeconds = static_cast<double>(currentTime.QuadPart - lastTime.QuadPart) * invFrequency;
 			lastTime = currentTime;
 			
-			// Defend against large spiks in time: (Resume after breakpoint, Window Drag)
-			Timestep ts(std::min(deltaSeconds, 0.1f));
+			if (deltaSeconds > 0.1) deltaSeconds = 0.1;
+			if (deltaSeconds < 0.0) deltaSeconds = 0.0; // Guard against rare QPC jitter
+
+			Timestep ts(static_cast<float>(deltaSeconds));
 
 			shaderCheckTimer += ts.GetSeconds();
 			if (shaderCheckTimer >= shaderCheckInterval) {
