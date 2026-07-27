@@ -1,18 +1,24 @@
 #pragma once
 #include "Layer.h"
+#include "ContentBrowser.h"
 #include "Scene.h"
 
 namespace Engine {
 
 	class EditorLayer : public Layer {
 	public:
-		EditorLayer(Scene* scene) : Layer("Edtior"), _Scene(scene) {}
+		EditorLayer(Scene* scene, ID3D11Device* device, const fs::path& assetRoot) : 
+			Layer("Edtior"), _Scene(scene), _ContentBrowser(device, assetRoot), _Device(device) {}
 
 		virtual void OnMenuBarRender() override;
 		virtual void OnImGuiRender() override;
 	private:
 		Scene* _Scene;
 		int _SelectedIndex = -1;
+
+		ContentBrowserPanel _ContentBrowser;
+		ID3D11Device* _Device;
+		bool _ShowContentBrowser = true;
 		bool _ShowHierarchy = true;
 		bool _ShowInspector = true;
 		bool _ShowLighting = true;

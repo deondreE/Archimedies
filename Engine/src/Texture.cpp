@@ -10,7 +10,7 @@ namespace Engine {
 
 		stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 		if (!data) {
-			LOG_ERROR("Texture2D::Create failed to load: %s", path.c_str());
+			LOG_ERROR("Texture2D::Create failed to load: %s | stb_image reason %s", path.c_str(), stbi_failure_reason());
 			return nullptr;
 		}
 
@@ -22,6 +22,7 @@ namespace Engine {
 		td.Width = width;
 		td.Height = height;
 		td.MipLevels = 1;
+		td.ArraySize = 1;
 		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		td.SampleDesc.Count = 1;
 		td.Usage = D3D11_USAGE_IMMUTABLE;
@@ -67,7 +68,7 @@ namespace Engine {
 		td.SampleDesc.Count = 1;
 		td.Usage = D3D11_USAGE_IMMUTABLE;
 		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
+		
 		D3D11_SUBRESOURCE_DATA sd = {};
 		sd.pSysMem = &rgba; // packed as 0xAABBGGRR in memory order (R,G,B,A bytes)
 		sd.SysMemPitch = 4;

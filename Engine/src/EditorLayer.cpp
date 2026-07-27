@@ -14,12 +14,17 @@ namespace Engine {
 			ImGui::MenuItem("Inspector", nullptr, &_ShowInspector);
 			ImGui::MenuItem("Lighting", nullptr, &_ShowLighting);
 			ImGui::MenuItem("Stats", nullptr, &_ShowStats);
+			ImGui::MenuItem("Content Browser", nullptr, &_ShowContentBrowser);
 			ImGui::EndMenu();
 		}
 	}
 
 	void EditorLayer::OnImGuiRender() {
 		auto& entities = _Scene->GetEntities();
+		
+		if (_ShowContentBrowser) {
+			_ContentBrowser.OnImGuiRender(_ShowContentBrowser);
+		}
 
 		// Entity Panel List
 		if (_ShowHierarchy) {
@@ -43,6 +48,28 @@ namespace Engine {
 				ImGui::Separator();
 
 				ImGui::DragFloat3("Position", &e.Position.x, 0.1f);
+
+				ImGui::Separator();
+
+				ImGui::Text("Texture");
+				ImGui::SameLine();
+
+				std::string textureLabel = "None";
+				if (e.Material && e.Material->GetTexture()) textureLabel = "Assinged";
+
+				ImGui::Button(textureLabel.c_str(), ImVec2(120, 0));
+
+				if (ImGui::BeginDragDropTarget()) {
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXTURE")) {
+						std::string path((const char*)payload->Data, payload->DataSize - 1); // -1: drop the null terminator we included in DataSize
+
+						auto newTexture = Engine::Texture2D::Create(_Device, path);
+						if (newTexture && e.Material) {
+							e.Material->SetTexture(newTexture);
+						}
+						ImGui::EndDragDropTarget();
+					}
+				}
 
 				ImGui::Separator();
 				ImGui::Text("Mesh: %s", e.Mesh ? "Assigned" : "None");

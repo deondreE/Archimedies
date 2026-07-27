@@ -10,6 +10,7 @@ namespace Engine {
 
         std::shared_ptr<Shader> GetShader() const { return _Shader; }
         std::shared_ptr<Texture2D> GetTexture() const { return _Texture; }
+        void SetTexture(std::shared_ptr<Texture2D> texture) { _Texture = texture; }
 
     private:
         std::shared_ptr<Shader> _Shader;

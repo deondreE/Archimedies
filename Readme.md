@@ -19,6 +19,8 @@ Opened panels are always Dockable to the main window, but they would not always 
 - [ ] Animation
 - [ ] 2D Renderer
 - [ ] Audio
+- [x] Content Browser
+- [x] Image Thumbnails
 - [ ] Gamepad Input
 - [ ] Text Rendering
 - [ ] 3D Models

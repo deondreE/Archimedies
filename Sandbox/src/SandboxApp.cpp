@@ -9,7 +9,7 @@ public:
 
     virtual void OnInit() override {
         PushLayer(new SandboxLayer(_ActiveScene.get(), GetDevice(), _Specification.WorkingDirectory, _Width, _Height));
-        PushOverlay(new Engine::EditorLayer(_ActiveScene.get()));
+        PushOverlay(new Engine::EditorLayer(_ActiveScene.get(), GetDevice(), _Specification.WorkingDirectory));
     }
 private:
     static Engine::ApplicationSpecification MakeSpec() {
