@@ -21,10 +21,9 @@ public:
         auto material = std::make_shared<Engine::Material>(shader);
 
         std::vector<Engine::Vertex> verts = {
-            { {  0.0f,  0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.5f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
-            { {  0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
-            { { -0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } }
-        };
+            {{ 0.0f,  0.5f, 0.0f}, {1, 1, 1, 1}, {0.5f, 0.0f}, {0, 0, -1}},
+            {{ 0.5f, -0.5f, 0.0f}, {1, 1, 1, 1}, {1.0f, 1.0f}, {0, 0, -1}},
+            {{-0.5f, -0.5f, 0.0f}, {1, 1, 1, 1}, {0.0f, 1.0f}, {0, 0, -1}} };
         std::vector<uint32_t> indices = { 0, 1, 2 };
         auto mesh = Engine::Mesh::Create(_Device, verts, indices);
 

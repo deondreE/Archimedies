@@ -25,6 +25,7 @@ Opened panels are always Dockable to the main window, but they would not always 
 - [ ] Text Rendering
 - [ ] 3D Models
 - [ ] Scene Serialization
+- [ ] Optimize Math lib
 - [x] ImGui Overlay
 - [ ] Asset Manager
 - [x] Layer Stack

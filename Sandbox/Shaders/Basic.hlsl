@@ -14,6 +14,7 @@ cbuffer SceneBuffer : register(b0)
 cbuffer EntityBuffer : register(b1)
 {
     float4x4 u_World;
+//    float4x4 u_NormalMatrix;
 };
 
 Texture2D u_Texture : register(t0);
@@ -41,7 +42,7 @@ PS_IN VSMain(VS_IN input)
     float4 worldPos = mul(float4(input.pos, 1.0f), u_World);
     output.pos = mul(worldPos, u_ViewProjection);
     
-    output.worldNormal = normalize(mul(input.normal, (float3x3) u_World));
+    output.worldNormal = mul(input.normal, (float3x3) u_World);
     output.col = input.col;
     output.uv = input.uv;
     return output;
@@ -53,7 +54,7 @@ float4 PSMain(PS_IN input) : SV_Target
     
     float3 toLight = normalize(-u_LightDirection);
     
-    float3 diffuseFactor = max(dot(normal, toLight), 0.0f);
+    float diffuseFactor = max(dot(normal, toLight), 0.0f);
     float3 diffuse = u_LightColor * u_LightIntensity * diffuseFactor;
     float3 ambient = u_LightColor * u_AmbientStrength;
     

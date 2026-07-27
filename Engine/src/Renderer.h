@@ -2,7 +2,7 @@
 #include "archpch.h"
 #include "Scene.h"
 #include "ShaderLibrary.h"
-#include "Light.h";
+#include "Light.h"
 
 namespace Engine {
 
@@ -43,8 +43,9 @@ namespace Engine {
 			float LightColor[3];
 			float LightIntensity;
 			float AmbientStrength;
-			float _Pad1;
+			float _Pad1[3];
 		};
+		static_assert(sizeof(SceneConstants) == 112, "Layout mismatch with shader");
 		static_assert(sizeof(SceneConstants) % 16 == 0, "SceneConstants must be 16-byte aligned"); 
 
 		struct EntityConstants {

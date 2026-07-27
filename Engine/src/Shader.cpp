@@ -39,7 +39,7 @@ namespace Engine{
 
         hr = D3DCompileFromFile(_Path.c_str(), nullptr, nullptr, "VSMain", "vs_5_0", 0, 0, &vsBlob, &errorBlob);
         if (FAILED(hr)) {
-            if (errorBlob) LOG_ERROR("Shader Compilation failed (VS): %s", (char)errorBlob->GetBufferPointer());
+            if (errorBlob) LOG_ERROR("Shader Compilation failed (VS): %s", (char*)errorBlob->GetBufferPointer());
             else LOG_ERROR("Shader compile failed (VS), no error blob. HRESULT: 0x%08X", hr);
             return false;
         }

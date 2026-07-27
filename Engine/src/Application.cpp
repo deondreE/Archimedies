@@ -6,6 +6,7 @@
 #include "KeyEvent.h"
 #include "MouseEvent.h"
 #include "Event.h"
+#include "Math/TestMath.h"
 #include <windowsx.h>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -18,6 +19,11 @@ namespace Engine {
 		if (!_Specification.WorkingDirectory.empty()) {
 			SetCurrentDirectoryW(_Specification.WorkingDirectory.c_str());
 		}
+
+		// Only run when I want it to
+#if 0
+		Math::RunMathTests();
+#endif	
 	}
 
 	Application::~Application() {}
