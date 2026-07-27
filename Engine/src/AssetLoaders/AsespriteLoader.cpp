@@ -80,9 +80,22 @@ namespace Engine {
 		void AsepriteLoader::CompositeFrame(const AseSprite& sprite, AseFrame& frame) {
 			frame.CompositePixels.assign(sprite.Width * sprite.Height * 4, 0);
 
+			std::vector<const AseCel*> ordered;
+			ordered.reserve(frame.Cels.size());
 			for (const auto& cel : frame.Cels) {
-				uint8_t opacity = cel.Opacity;
+				ordered.push_back(&cel);
+			}
 
+			std::sort(ordered.begin(), ordered.end(),
+				[](const AseCel* a, const AseCel* b) {
+					return a->LayerIndex < b->LayerIndex;
+				});
+
+			for (const auto* celPtr : ordered) {
+				const auto& cel = *celPtr;
+				const auto& layer = sprite.Layers[cel.LayerIndex];
+				if (!(layer.Flags & 1)) continue; // bit 0 visible;
+		
 				for (uint32_t y = 0; y < cel.Height; y++) {
 					int32_t dstY = cel.Y + y;
 					if (dstY < 0 || dstY >= (int32_t)sprite.Height) continue;
@@ -94,7 +107,8 @@ namespace Engine {
 						uint32_t srcIndex = (y * cel.Width + x) * 4;
 						uint32_t dstIndex = (dstY * sprite.Width + dstX) * 4;
 
-						BlendPixel(&frame.CompositePixels[dstIndex], &cel.Pixels[srcIndex], opacity);
+						uint8_t effectiveOpacity = (uint8_t)((cel.Opacity * layer.Opacity) / 255);
+						BlendPixel(&frame.CompositePixels[dstIndex], &cel.Pixels[srcIndex], effectiveOpacity);
 					}
 				}
 			}
