@@ -1,12 +1,13 @@
 #include "archpch.h"
 #include "ContentBrowser.h"
+#include "AssetLoaders/AsespriteLoader.h"
 
 namespace Engine {
 
 	static bool IsImageFile(const fs::path& path) {
 		std::string ext = path.extension().string();
-		return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp"
-			|| ext == ".tga";
+		return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" 
+			|| ext == ".tga" || ext == ".ase" || ext == ".aseprite";
 	}
 
 	ContentBrowserPanel::ContentBrowserPanel(ID3D11Device* device, const fs::path& assetRoot)
@@ -26,7 +27,7 @@ namespace Engine {
 	}
 
 	std::shared_ptr<Texture2D> ContentBrowserPanel::GetOrLoadThumbnail(const fs::path& path) {
-		assert(_Device != nullptr);
+		assert(_Device);
 		std::string key = path.string();
 
 		auto it = _ThumbnailCache.find(key);
@@ -34,9 +35,39 @@ namespace Engine {
 			return it->second; // may be nullptr;
 		}
 
-		auto texture = Texture2D::Create(_Device, key);
-		if (!texture) {
-			LOG_WARN("ContentBrowser: failed to load for %s", key.c_str());
+		std::shared_ptr<Texture2D> texture;
+
+		std::string ext = path.extension().string();
+		std::transform(
+			ext.begin(),
+			ext.end(),
+			ext.begin(),
+			[](unsigned char c) { return (char)std::tolower(c);});
+		if (ext == ".ase" || ext == ".aseprite") {
+			auto sprite = Loaders::AsepriteLoader::Load(key);
+
+			if (sprite &&
+				!sprite->Frames.empty() &&
+				!sprite->Frames[0].CompositePixels.empty())
+			{
+				texture = Texture2D::CreateFromRGBA(
+					_Device,
+					sprite->Width,
+					sprite->Height,
+					sprite->Frames[0].CompositePixels.data());
+			}
+		}
+		else {
+			texture = Texture2D::Create(
+				_Device,
+				key);
+		}
+
+		if (!texture)
+		{
+			LOG_WARN(
+				"ContentBrowser: failed thumbnail load %s",
+				key.c_str());
 		}
 
 		_ThumbnailCache[key] = texture;

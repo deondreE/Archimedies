@@ -9,6 +9,38 @@ workspace "Archimedies"
     targetdir ("bin/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
     objdir ("bin-int/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
 
+project "zlib"
+	location "Engine/Vendor/zlib"
+	kind "StaticLib"
+	language "C"
+	staticruntime "off"
+	system "Windows"
+	
+	warnings "off"
+	
+	files
+    {
+        "Engine/Vendor/zlib/*.h",
+        "Engine/Vendor/zlib/*.c"
+    }
+	
+	filter "files:Engine/Vendor/zlib/example.c"
+        buildaction "None"
+    filter "files:Engine/Vendor/zlib/minigzip.c"
+        buildaction "None"
+    filter {}
+
+    includedirs { "Engine/Vendor/zlib" }
+
+    filter "configurations:Debug"
+        runtime "Debug"
+        symbols "On"
+
+    filter "configurations:Release"
+        runtime "Release"
+        optimize "On"
+		
+
 project "Engine"
     location "Engine"
     kind "StaticLib"
@@ -42,10 +74,18 @@ project "Engine"
         "Engine/Vendor",
         "Engine/Vendor/imgui",
         "Engine/Vendor/imgui/backends",
+		"Engine/Vendor/zlib"
     }
     
 
-    links { "d3d11.lib", "d3d12.lib", "dxgi.lib", "d3dcompiler.lib" }
+    links 
+	{ 
+		"d3d11.lib", 
+		"d3d12.lib", 
+		"dxgi.lib", 
+		"d3dcompiler.lib",
+		"zlib"
+	}
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -75,7 +115,8 @@ project "Sandbox"
         "Engine/src",
         "Engine/Vendor",
         "Engine/Vendor/imgui",
-        "Engine/Vendor/imgui/backends"
+        "Engine/Vendor/imgui/backends",
+		"Engine/Vendor/zlib"
     }
 
     links 

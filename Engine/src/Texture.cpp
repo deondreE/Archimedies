@@ -111,4 +111,58 @@ namespace Engine {
 
 		return texture;
 	}
+
+	std::shared_ptr<Texture2D> Texture2D::CreateFromRGBA(
+		ID3D11Device* device, 
+		uint32_t width, 
+		uint32_t height, 
+		const uint8_t* pixels)	{
+		auto texture = std::make_shared<Texture2D>();
+
+		texture->_Width = width;
+		texture->_Height = height;
+
+		D3D11_TEXTURE2D_DESC desc = {};
+		desc.Width = width;
+		desc.Height = height;
+		desc.MipLevels = 1;
+		desc.ArraySize = 1;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.SampleDesc.Count = 1;
+		desc.Usage = D3D11_USAGE_IMMUTABLE;
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		D3D11_SUBRESOURCE_DATA data = {};
+		data.pSysMem = pixels; 
+		data.SysMemPitch = width * 4;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> d3dTexture;
+
+		HRESULT hr = device->CreateTexture2D(
+			&desc,
+			&data,
+			&d3dTexture
+		);
+		assert(SUCCEEDED(hr));
+
+		hr = device->CreateShaderResourceView(
+			d3dTexture.Get(),
+			nullptr,
+			&texture->_SRV);
+		assert(SUCCEEDED(hr));
+
+		D3D11_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // point sampling, no filtering needed for 1x1
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		hr = device->CreateSamplerState(
+			&samplerDesc,
+			&texture->_Sampler);
+		assert(SUCCEEDED(hr));
+
+		return texture;
+	}
 }

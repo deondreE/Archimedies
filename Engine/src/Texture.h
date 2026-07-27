@@ -7,6 +7,7 @@ namespace Engine {
 	public:
 		static std::shared_ptr<Texture2D> Create(ID3D11Device* device, const std::string& path);
 		static std::shared_ptr<Texture2D> CreateSolidColor(ID3D11Device* device, uint32_t rgba);
+		static std::shared_ptr<Texture2D> CreateFromRGBA(ID3D11Device* device, uint32_t width, uint32_t height, const uint8_t* pixels);
 
 		ID3D11ShaderResourceView* GetSRV() const { return _SRV.Get(); }
 		ID3D11SamplerState* GetSampler() const { return _Sampler.Get(); }

@@ -30,8 +30,11 @@
 #include <memory>
 #include <cmath>
 #include <sstream>
+#include <fstream>
+#include <zlib.h>
 #include <map>
 #include <cstdio>
+#include <cstdint>
 #include <unordered_map>
 
 #include "Math/ArchMath.h"

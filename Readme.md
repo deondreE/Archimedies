@@ -14,7 +14,7 @@ Opened panels are always Dockable to the main window, but they would not always 
 
 ## TODO:
 
-- [ ] DirectX12
+- [ ] DirectX12 -- Started Work on This!
 - [ ] Metal
 - [ ] Cora Integration
 - [x] Shader Library
