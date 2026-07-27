@@ -35,10 +35,16 @@ namespace Engine {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2d;
 		HRESULT hr = device->CreateTexture2D(&td, &sd, &tex2d);
 		stbi_image_free(data);
-		if (FAILED(hr)) return nullptr;
+		if (FAILED(hr)) {
+			LOG_ERROR("Texture::Create at CreateTexture2D failed; HRESULT: 0x%08X", hr);
+			return nullptr;
+		}
 
 		hr = device->CreateShaderResourceView(tex2d.Get(), nullptr, &texture->_SRV);
-		if (FAILED(hr)) return nullptr;
+		if (FAILED(hr)) {
+			LOG_ERROR("Texture::Create at CreateShaderResourceView failed; HRESULT: 0x%08X", hr);
+			return nullptr;
+		}
 
 		D3D11_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -49,7 +55,10 @@ namespace Engine {
 		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		hr = device->CreateSamplerState(&samplerDesc, &texture->_Sampler);
-		if (FAILED(hr)) return nullptr;
+		if (FAILED(hr)) {
+			LOG_ERROR("Texture::Create at CreateSamplerState failed; HRESULT: 0x%08X", hr);
+			return nullptr;
+		}
 
 		return texture;
 	}
@@ -75,10 +84,16 @@ namespace Engine {
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex2d;
 		HRESULT hr = device->CreateTexture2D(&td, &sd, &tex2d);
-		if (FAILED(hr)) return nullptr;
+		if (FAILED(hr)) { 
+			LOG_ERROR("Texture::Create at CreateTexture2D failed; HRESULT: 0x%08X", hr);
+			return nullptr; 
+		}
 
 		hr = device->CreateShaderResourceView(tex2d.Get(), nullptr, &texture->_SRV);
-		if (FAILED(hr)) return nullptr;
+		if (FAILED(hr)) { 
+			LOG_ERROR("Texture::Create at CreateShaderResourceView failed; HRESULT: 0x%08X", hr);
+			return nullptr; 
+		}
 
 		D3D11_SAMPLER_DESC samplerDesc = {};
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT; // point sampling, no filtering needed for 1x1
@@ -89,7 +104,10 @@ namespace Engine {
 		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		hr = device->CreateSamplerState(&samplerDesc, &texture->_Sampler);
-		if (FAILED(hr)) return nullptr;
+		if (FAILED(hr)) { 
+			LOG_ERROR("Texture::Create at CreateSamplerState failed; HRESULT: 0x%08X", hr);
+			return nullptr; 
+		}
 
 		return texture;
 	}

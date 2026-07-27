@@ -47,7 +47,9 @@ namespace Engine {
 				ImGui::Text("Name: %s", e.Name.c_str());
 				ImGui::Separator();
 
-				ImGui::DragFloat3("Position", &e.Position.x, 0.1f);
+				ImGui::DragFloat3("Position", &e.Position.x, 0.1f, 0, 100.0f);
+				ImGui::DragFloat3("Scale", &e.Scale.x, 0.1f, 0, 100.0f);
+				ImGui::DragFloat3("Rotation", &e.Rotation.x, 0.1f); // @Todo: Make this render as Deg 0->360
 
 				ImGui::Separator();
 

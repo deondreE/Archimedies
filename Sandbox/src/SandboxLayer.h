@@ -55,11 +55,7 @@ public:
         dispatcher.Dispatch<Engine::WindowResizeEvent>([this](Engine::WindowResizeEvent& re) {
             _Camera->OnResize(re.GetWidth(), re.GetHeight());
             return false;
-            });
-    }
-
-    virtual void OnImGuiRender() override {
-        
+        });
     }
 private:
     Engine::Scene* _Scene;
