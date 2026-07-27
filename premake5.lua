@@ -1,30 +1,24 @@
 workspace "Archimedies"
     configurations { "Debug", "Release" }
-    platforms { "x64" } -- Using standard 'x64' naming
+    platforms { "x64" }
 
     filter "platforms:x64"
         architecture "x86_64"
 
-    -- Global output paths
     targetdir ("bin/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
     objdir ("bin-int/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
 
 project "zlib"
-	location "Engine/Vendor/zlib"
-	kind "StaticLib"
-	language "C"
-	staticruntime "off"
-	system "Windows"
-	
-	warnings "off"
-	
-	files
-    {
-        "Engine/Vendor/zlib/*.h",
-        "Engine/Vendor/zlib/*.c"
-    }
-	
-	filter "files:Engine/Vendor/zlib/example.c"
+    location "Engine/Vendor/zlib"
+    kind "StaticLib"
+    language "C"
+    staticruntime "off"
+    system "Windows"
+    warnings "off"
+    
+    files { "Engine/Vendor/zlib/*.h", "Engine/Vendor/zlib/*.c" }
+    
+    filter "files:Engine/Vendor/zlib/example.c"
         buildaction "None"
     filter "files:Engine/Vendor/zlib/minigzip.c"
         buildaction "None"
@@ -35,11 +29,9 @@ project "zlib"
     filter "configurations:Debug"
         runtime "Debug"
         symbols "On"
-
     filter "configurations:Release"
         runtime "Release"
         optimize "On"
-		
 
 project "Engine"
     location "Engine"
@@ -48,20 +40,17 @@ project "Engine"
     cppdialect "C++20"
     staticruntime "off"
     system "Windows"
-	
-	linkoptions { "/ignore:4006" }
+    linkoptions { "/ignore:4006" }
 
-    -- PCH Configuration
     pchheader "archpch.h"
     pchsource "Engine/src/archpch.cpp"
-
 
     files 
     { 
         "Engine/src/**.h", 
         "Engine/src/**.cpp",
         "Engine/Vendor/imgui/**.cpp",
-        "Engine/Vendor/imgui/backends/**.cpp",
+        "Engine/Vendor/imgui/backends/**.cpp"
     }
 
     filter "files:Engine/Vendor/**.cpp"
@@ -74,24 +63,22 @@ project "Engine"
         "Engine/Vendor",
         "Engine/Vendor/imgui",
         "Engine/Vendor/imgui/backends",
-		"Engine/Vendor/zlib"
-    }
-    
+        "Engine/Vendor/zlib",
+        "Engine/Vendor/json/include" 
+	}
 
     links 
-	{ 
-		"d3d11.lib", 
-		"d3d12.lib", 
-		"dxgi.lib", 
-		"d3dcompiler.lib",
-		"zlib"
-	}
+    { 
+        "d3d11.lib", "d3d12.lib", "dxgi.lib", "d3dcompiler.lib",
+        "zlib",
+    }
+
+    defines { "YAML_CPP_STATIC_LIB" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
         runtime "Debug"
         symbols "On"
-
     filter "configurations:Release"
         defines { "NDEBUG" }
         runtime "Release"
@@ -104,11 +91,7 @@ project "Sandbox"
     cppdialect "C++20"
     system "Windows"
 
-    files 
-    { 
-        "Sandbox/src/**.h", 
-        "Sandbox/src/**.cpp"
-    }
+    files { "Sandbox/src/**.h", "Sandbox/src/**.cpp" }
 
     includedirs 
     { 
@@ -116,19 +99,16 @@ project "Sandbox"
         "Engine/Vendor",
         "Engine/Vendor/imgui",
         "Engine/Vendor/imgui/backends",
-		"Engine/Vendor/zlib"
-    }
+        "Engine/Vendor/zlib",
+        "Engine/Vendor/json/include" 
+	}
 
-    links 
-    { 
-        "Engine" 
-    }
+    links { "Engine" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
         runtime "Debug"
         symbols "On"
-
     filter "configurations:Release"
         defines { "NDEBUG" }
         runtime "Release"

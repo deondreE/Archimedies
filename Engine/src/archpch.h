@@ -36,6 +36,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <unordered_map>
+#include <random>
 
 #include "Math/ArchMath.h"
 #include "Log.h"

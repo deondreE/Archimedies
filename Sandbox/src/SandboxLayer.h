@@ -8,6 +8,7 @@
 #include "Scene.h"
 #include "WindowEvents.h"
 #include "imgui.h"
+#include "SceneSerializer.h"
 
 class SandboxLayer : public Engine::Layer {
 public:
@@ -36,6 +37,8 @@ public:
 
         float aspect = (float)_Width / (float)_Height;
         _Camera = std::make_unique<Engine::Camera>(45.0f, aspect, 0.1f, 1000.0f);
+
+        Engine::SceneSerializer::Serialize(*_Scene, "Sandbox.scene");
     }
 
     virtual void OnUpdate(Engine::Timestep ts) override {

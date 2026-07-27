@@ -5,3 +5,4 @@ bin
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
+*.scene
