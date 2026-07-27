@@ -14,6 +14,8 @@ Opened panels are always Dockable to the main window, but they would not always 
 
 ## TODO:
 
+- [ ] DirectX12
+- [ ] Metal
 - [ ] Cora Integration
 - [x] Shader Library
 - [ ] Animation
@@ -22,6 +24,7 @@ Opened panels are always Dockable to the main window, but they would not always 
 - [x] Content Browser
 - [x] Image Thumbnails
 - [ ] Gamepad Input
+	- XInput
 - [ ] Text Rendering
 - [ ] 3D Models
 - [ ] Scene Serialization
