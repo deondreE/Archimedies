@@ -12,6 +12,8 @@ And Some debug window to be an Overlay, then renders on top, but recieves mouse 
 Keep the focus on the Viewport the "Game Screen" is the focus everything can be turned off or on.
 Opened panels are always Dockable to the main window, but they would not always have to take up space in the viewport.
 
+Remember to `git clone recursive`
+
 ## TODO:
 
 - [ ] DirectX12 -- Started Work on This!
