@@ -12,6 +12,7 @@ namespace Engine {
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 		ImGui::StyleColorsDark();
 
@@ -37,6 +38,40 @@ namespace Engine {
 		if (io.WantCaptureMouse || io.WantCaptureKeyboard) {
 			e.Handled = true;
 		}
+	}
+
+	void ImGuiLayer::BeginDocking() {
+		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
+
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->WorkPos);
+		ImGui::SetNextWindowSize(viewport->WorkSize);
+		ImGui::SetNextWindowViewport(viewport->ID);
+
+		windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize
+			| ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus
+			| ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar;
+
+		ImGui::Begin("DockSpaceHost", nullptr, windowFlags);
+		//ImGui::PopStyleVar(1);
+
+		ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
+		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+		
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("File")) {
+				if (ImGui::MenuItem("Exit")) PostQuitMessage(0);
+				ImGui::EndMenu();
+			}
+		}
+	}
+
+	void ImGuiLayer::EndMenuBar() {
+		ImGui::EndMenuBar();
+	}
+
+	void ImGuiLayer::EndDocking() {
+		ImGui::End();
 	}
 
 	void ImGuiLayer::OnDetach() {

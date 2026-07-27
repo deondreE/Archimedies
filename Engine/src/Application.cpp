@@ -213,10 +213,17 @@ namespace Engine {
 
 			// ImGui frame wraps around here: Begin() before any ImGui:: calls, End() after all of them
 			_ImGuiLayer->Begin();
+			_ImGuiLayer->BeginDocking();
+			for (Layer* layer : _LayerStack) {
+				layer->OnMenuBarRender();
+			}
+			_ImGuiLayer->EndMenuBar();
 			for (Layer* layer : _LayerStack) {
 				layer->OnImGuiRender(); // new virtual — see Layer.h update below
 			}
+			_ImGuiLayer->EndDocking();
 			_ImGuiLayer->End();
+
 
 			_SwapChain->Present(1, 0); // VSync
 		}

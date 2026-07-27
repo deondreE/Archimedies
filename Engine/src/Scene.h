@@ -17,7 +17,9 @@ namespace Engine {
 			return _Entities.back();
 		}
 
+		std::vector<Entity>& GetEntities() { return _Entities; }
 		const std::vector<Entity>& GetEntities() const { return _Entities; }
+
 	private:
 		std::vector<Entity> _Entities;
 	};
