@@ -49,49 +49,52 @@ namespace Engine {
 			return output;
 		}
 
-		static void BlendPixel(uint8_t* dst, const uint8_t* src) {
-			float sourceAlpha = src[3] / 255.0f;
-			float destAlpha = dst[3] / 255.0f;
+		static void BlendPixel(uint8_t* dst, const uint8_t* src, uint8_t layerOpacity) {
+			// Calculate effective alpha (pixel alpha * layer opacity)
+			// The +127 / 255 is a fast way to divide by 255 with rounding
+			uint16_t alpha = (uint16_t)src[3] * layerOpacity / 255;
 
-			float outA = sourceAlpha + destAlpha * (1.0 - sourceAlpha);
-			if (outA <= 0.0f)
+			if (alpha == 0) return;
+			if (alpha == 255) {
+				dst[0] = src[0];
+				dst[1] = src[1];
+				dst[2] = src[2];
+				dst[3] = src[3];
 				return;
-
-			for (int i = 0; i < 3; i++) {
-				float s = src[i] / 255.0f;
-				float d = dst[i] / 255.0f;
-
-float out = (s * sourceAlpha + d * destAlpha * (1.0 - sourceAlpha)) / outA;
-
-dst[i] = static_cast<uint8_t>(out * 255.0f);
 			}
-			dst[3] = static_cast<uint8_t>(outA * 255.0f);
+
+			// Standard Porter-Duff Over operator using integer math:
+			// out = src * alpha + dst * (255 - alpha)
+			uint8_t invAlpha = 255 - alpha;
+
+			dst[0] = (uint8_t)((src[0] * alpha + dst[0] * invAlpha) / 255);
+			dst[1] = (uint8_t)((src[1] * alpha + dst[1] * invAlpha) / 255);
+			dst[2] = (uint8_t)((src[2] * alpha + dst[2] * invAlpha) / 255);
+
+			// For alpha channel: 
+			// Usually, for a final composite, you want to track the coverage
+			uint32_t outA = alpha + ((uint32_t)dst[3] * invAlpha / 255);
+			dst[3] = (uint8_t)(outA > 255 ? 255 : outA);
 		}
 
-		void AsepriteLoader::CompositeFrame(
-			const AseSprite& sprite,
-			AseFrame& frame
-		) {
-			frame.CompositePixels.resize(
-				sprite.Width *
-				sprite.Height *
-				4);
-			std::fill(frame.CompositePixels.begin(), frame.CompositePixels.end(), 0);
+		void AsepriteLoader::CompositeFrame(const AseSprite& sprite, AseFrame& frame) {
+			frame.CompositePixels.assign(sprite.Width * sprite.Height * 4, 0);
 
 			for (const auto& cel : frame.Cels) {
+				uint8_t opacity = cel.Opacity;
+
 				for (uint32_t y = 0; y < cel.Height; y++) {
+					int32_t dstY = cel.Y + y;
+					if (dstY < 0 || dstY >= (int32_t)sprite.Height) continue;
+
 					for (uint32_t x = 0; x < cel.Width; x++) {
 						int32_t dstX = cel.X + x;
-						int32_t dstY = cel.Y + y;
-
-						if (dstX < 0 || dstY < 0 || dstX >= (int32_t)sprite.Width || dstY >= (int32_t)sprite.Height) {
-							continue;
-						}
+						if (dstX < 0 || dstX >= (int32_t)sprite.Width) continue;
 
 						uint32_t srcIndex = (y * cel.Width + x) * 4;
 						uint32_t dstIndex = (dstY * sprite.Width + dstX) * 4;
 
-						BlendPixel(&frame.CompositePixels[dstIndex], &cel.Pixels[srcIndex]);
+						BlendPixel(&frame.CompositePixels[dstIndex], &cel.Pixels[srcIndex], opacity);
 					}
 				}
 			}
@@ -133,12 +136,15 @@ dst[i] = static_cast<uint8_t>(out * 255.0f);
 			cel.X = Read<uint16_t>(stream);
 			cel.Y = Read<uint16_t>(stream);
 
-			cel.Opacity = Read<uint16_t>(stream);
+			cel.Opacity = Read<uint8_t>(stream);
 
 			uint16_t celType = Read<uint16_t>(stream);
 
+			stream.seekg(2, std::ios::cur); // Z-Index
+			stream.seekg(5, std::ios::cur); // reserved
+
 			if (celType != 2) {
-				stream.seekg(chunkSize - 26, std::ios::cur);
+				stream.seekg(chunkSize - 6 - 16, std::ios::cur);
 				return;
 			}
 			cel.Width = Read<uint16_t>(stream);
