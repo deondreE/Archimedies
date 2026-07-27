@@ -7,6 +7,7 @@ workspace "Archimedies"
 
     targetdir ("bin/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
     objdir ("bin-int/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
+	
 
 project "zlib"
     location "Engine/Vendor/zlib"
@@ -115,3 +116,24 @@ project "Sandbox"
         defines { "NDEBUG" }
         runtime "Release"
         optimize "On"
+
+project "CoraScripting"
+	kind "ConsoleApp"
+	language "C++"
+	files { 
+		"Engine/Vendor/cora/**.h", 
+		"Engine/Vendor/cora/**.cpp",
+		"Engine/Vendor/cora/**.cs"
+	}
+	
+	postbuildcommands {
+		"{COPY} %{wks.location}/Engine/Vendor/cora/Scripts/ %{wks.location}/build/"
+	}
+
+   filter "configurations:Debug"
+      defines { "DEBUG" }
+      symbols "On"
+
+   filter "configurations:Release"
+      defines { "NDEBUG" }
+      optimize "On"

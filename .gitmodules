@@ -7,3 +7,6 @@
 [submodule "Engine/Vendor/gltf"]
 	path = Engine/Vendor/gltf
 	url = https://github.com/syoyo/tinygltf.git
+[submodule "Engine/Vendor/cora"]
+	path = Engine/Vendor/cora
+	url = https://github.com/deondreE/Cora.git
