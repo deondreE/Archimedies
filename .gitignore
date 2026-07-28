@@ -5,4 +5,7 @@ bin
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
+*.csproj
+*.csproj.user
 *.scene
+build

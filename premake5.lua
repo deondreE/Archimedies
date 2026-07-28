@@ -68,7 +68,8 @@ project "Engine"
         "Engine/Vendor/imgui/backends",
         "Engine/Vendor/zlib",
         "Engine/Vendor/json/include",
-		"Engine/Vendor/gltf" 
+		"Engine/Vendor/gltf",
+		"Engine/Vendor/cora"
 	}
 
     links 
@@ -119,18 +120,40 @@ project "Sandbox"
         runtime "Release"
         optimize "On"
 
-project "CoraScripting"
+externalproject "Engine.Managed"
+    location "Engine/Vendor/cora/Engine.Managed"
+    kind "SharedLib"
+    language "C#"
+   
+project "Engine.Native"
 	kind "ConsoleApp"
 	language "C++"
+	cppdialect "C++23"
+	
 	files { 
 		"Engine/Vendor/cora/**.h", 
-		"Engine/Vendor/cora/**.cpp",
-		"Engine/Vendor/cora/**.cs"
+		"Engine/Vendor/cora/**.cpp"
 	}
 	
+	dependson { "Cora.Managed" }
+	
+	local dotnet_path = "C:/Program Files/dotnet/packs/Microsoft.NETCore.App.Host.win-x64/10.0.10/runtimes/win-x64/native"
+
+		
+	includedirs { dotnet_path }
+    libdirs { dotnet_path }
+    links { "nethost" }
+
 	postbuildcommands {
-		"{COPY} %{wks.location}/Engine/Vendor/cora/Scripts/ %{wks.location}/build/"
-	}
+        -- Copy the entire Scripts folder
+        -- "{COPYDIR} \"%{wks.location}Engine\Vendor\cora\Engine.Native\Scripts\" \"%{cfg.targetdir}/Scripts\"",
+        
+        -- Copy the native hosting DLL from the SDK
+        -- "{COPY} \"" .. dotnet_path .. "/nethost.dll\" \"%{cfg.targetdir}\"",
+        
+        -- Copy the compiled C# DLL (Adjust the path to your .csproj output)
+        -- "{COPY} \"%{wks.location}/Engine/Vendor/cora/Engine.Managed/bin/%{cfg.buildcfg}/net10.0/Engine.Managed.dll\" \"%{cfg.targetdir}\""
+    }
 
    filter "configurations:Debug"
       defines { "DEBUG" }
