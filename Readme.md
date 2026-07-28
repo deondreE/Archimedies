@@ -45,3 +45,10 @@ Remember to `git clone recursive`
 - [ ] Post-Processing
 - [ ] Make sure Delta-Time is real deltatime.
 - [ ] ImGuizmo - or Gizmos ourselves.
+
+## Cora TODO
+
+- Integrate with the core Engine
+	- Intialize fixes() - Engine.Managed Building Correctly then put into the correct spot.
+	- ScriptDir Setup fixes
+	- Watcher thread should have priority over Asset Pak thread.
