@@ -13,8 +13,8 @@
 
 class SandboxLayer : public Engine::Layer {
 public:
-	SandboxLayer(Engine::Scene* scene, ID3D11Device* device, const std::wstring& workingDir, int width, int height)
-		: Layer("Sandbox"), _Scene(scene), _Device(device), _WorkingDir(workingDir), _Width(width), _Height(height) {
+    SandboxLayer(Engine::Scene* scene, ID3D11Device* device, const std::wstring& workingDir, int width, int height)
+        : Layer("Sandbox"), _Scene(scene), _Device(device), _WorkingDir(workingDir), _Width(width), _Height(height) {
         std::filesystem::path root(_WorkingDir);
 
         Cora::ScriptManager::Config scriptConfig;
@@ -23,9 +23,7 @@ public:
         scriptConfig.managedDllPath = root / "Engine.Managed.dll";
         scriptConfig.scriptDir = root / "Scripts";
 
-        if (!_ScriptManager.Initialize(scriptConfig)) {
-            std::cerr << "Failed to initialize Cora ScriptManager!" << std::endl;
-        }
+        _ScriptManager.InitAsync(scriptConfig);
 	}
 
     virtual void OnAttach() override {
