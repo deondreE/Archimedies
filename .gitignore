@@ -8,4 +8,7 @@ bin
 *.csproj
 *.csproj.user
 *.scene
+*.dll
+*.pdb
+*.json
 build

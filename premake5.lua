@@ -7,7 +7,8 @@ workspace "Archimedies"
 
     targetdir ("bin/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
     objdir ("bin-int/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
-	
+local dotnet_path = "C:/Program Files/dotnet/packs/Microsoft.NETCore.App.Host.win-x64/10.0.10/runtimes/win-x64/native"
+
 
 project "zlib"
     location "Engine/Vendor/zlib"
@@ -78,8 +79,6 @@ project "Engine"
         "zlib",
     }
 
-    defines { "YAML_CPP_STATIC_LIB" }
-
     filter "configurations:Debug"
         defines { "DEBUG" }
         runtime "Debug"
@@ -96,7 +95,8 @@ project "Sandbox"
     cppdialect "C++23"
     system "Windows"
 
-    files { "Sandbox/src/**.h", "Sandbox/src/**.cpp" }
+    files { "Sandbox/src/**.h", "Sandbox/src/**.cpp",  "Engine/Vendor/cora/Engine.Native/**.h", 
+        "Engine/Vendor/cora/Engine.Native/**.cpp" }
 
     includedirs 
     { 
@@ -106,10 +106,13 @@ project "Sandbox"
         "Engine/Vendor/imgui/backends",
         "Engine/Vendor/zlib",
         "Engine/Vendor/json/include",
-		"Engine/Vendor/gltf" 
+		"Engine/Vendor/gltf",
+		"Engine/Vendor/cora/Engine.Native",
+		dotnet_path
 	}
-
-    links { "Engine" }
+	
+	libdirs { dotnet_path }
+    links { "Engine", "nethost" }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -131,8 +134,13 @@ project "Engine.Native"
 	cppdialect "C++23"
 	
 	files { 
-		"Engine/Vendor/cora/**.h", 
-		"Engine/Vendor/cora/**.cpp"
+		"Engine/Vendor/cora/Engine.Native/**.h", 
+		"Engine/Vendor/cora/Engine.Native/**.cpp"
+	}
+	
+	includedirs
+	{
+		"Engine/Vendor/cora/Engine.Native"
 	}
 	
 	dependson { "Cora.Managed" }

@@ -9,11 +9,23 @@
 #include "WindowEvents.h"
 #include "imgui.h"
 #include "SceneSerializer.h"
+#include "ScriptManager.h"
 
 class SandboxLayer : public Engine::Layer {
 public:
 	SandboxLayer(Engine::Scene* scene, ID3D11Device* device, const std::wstring& workingDir, int width, int height)
 		: Layer("Sandbox"), _Scene(scene), _Device(device), _WorkingDir(workingDir), _Width(width), _Height(height) {
+        std::filesystem::path root(_WorkingDir);
+
+        Cora::ScriptManager::Config scriptConfig;
+        scriptConfig.enableWatcher = true;
+
+        scriptConfig.managedDllPath = root / "Engine.Managed.dll";
+        scriptConfig.scriptDir = root / "Scripts";
+
+        if (!_ScriptManager.Initialize(scriptConfig)) {
+            std::cerr << "Failed to initialize Cora ScriptManager!" << std::endl;
+        }
 	}
 
     virtual void OnAttach() override {
@@ -43,6 +55,7 @@ public:
 
     virtual void OnUpdate(Engine::Timestep ts) override {
         _Camera->OnUpdate(ts);
+        _ScriptManager.ScriptTick(ts.GetSeconds());
     }
 
     virtual void OnRender() override {
@@ -60,10 +73,15 @@ public:
             return false;
         });
     }
+
+    virtual void OnDetach() override {
+        _ScriptManager.Shutdown();
+    }
 private:
     Engine::Scene* _Scene;
     ID3D11Device* _Device;
     std::wstring _WorkingDir;
     int _Width, _Height;
     std::unique_ptr<Engine::Camera> _Camera;
+    Cora::ScriptManager _ScriptManager;
 };

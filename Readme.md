@@ -41,10 +41,14 @@ Remember to `git clone recursive`
 - [ ] Lighting
 - [x] Directional Light
 - [ ] Shadows
+- [ ] Game UI
+- [ ] Game Code
 - [ ] ImGui Viewport
 - [ ] Post-Processing
 - [ ] Make sure Delta-Time is real deltatime.
 - [ ] ImGuizmo - or Gizmos ourselves.
+- [ ] Port Scripting engine away from Sandbox
+- [ ] Add some kind of execution queue.
 
 ## Cora TODO
 
