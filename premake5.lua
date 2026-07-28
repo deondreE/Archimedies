@@ -55,6 +55,8 @@ project "Engine"
     }
 
     filter "files:Engine/Vendor/**.cpp"
+        enablepch ("Off")	
+	filter "files:Engine/src/Asset.cpp"
         enablepch ("Off")
     filter {}
 
