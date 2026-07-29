@@ -57,17 +57,18 @@ Remember to `git clone --recursive`
 - [x] Directional Light
 - [ ] Real Time Collab [ Maybe ]()
 - [ ] Time Travel Debugging for the game process.
+	- [ ] ??
 - [ ] Native Visual Scripting
 - [ ] Shadows 
 - [ ] Game UI
 - [ ] Game Code
-- [ ] ImGui Viewport
 - [ ] Post-Processing
-- [ ] Make sure Delta-Time is real deltatime.
+- [x] Make sure Delta-Time is real deltatime.
 - [ ] ImGuizmo - or Gizmos ourselves.
 - [ ] Port Scripting engine away from Sandbox
 - [ ] Add some kind of execution queue.
 	- [ ] Background Importers
+- [ ] Entity Name should be editable.
 	
 # Bug
 
