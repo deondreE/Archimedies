@@ -17,30 +17,44 @@ Remember to `git clone recursive`
 ## TODO:
 
 - [ ] DirectX12 -- Started Work on This!
-- [ ] Metal
-- [ ] Cora Integration
+- [x] Cora Integration
 - [x] Shader Library
 - [ ] Animation
 - [ ] 2D Renderer
+- [ ] 2.5D Native Support
+- [ ] 2D Physics
 - [ ] Audio
+	- XAudio2
+	- SFX
+	- Music Track
 - [x] Content Browser
 - [x] Image Thumbnails
 - [ ] Gamepad Input
 	- XInput
 - [ ] Text Rendering
-- [ ] 3D Models
+- [x] 3D Models
 - [ ] Scene Serialization
 - [x] Optimize Math lib
 - [x] ImGui Overlay
 - [ ] Asset Manager
 - [x] Layer Stack
+- [ ] Figure out native modding 
+	- Headless engine maybe?
 - [ ] Scripting
+	- C#
+	- Rust
 - [ ] Editor UI -- Started
 - [ ] Multi-Material Meshes
 - [ ] Skybox
+- [ ] Signals
 - [ ] Lighting
+- [ ] Single Source Multiplayer
+	- [ ] Netcode
 - [x] Directional Light
-- [ ] Shadows
+- [ ] Real Time Collab [ Maybe ]()
+- [ ] Time Travel Debugging for the game process.
+- [ ] Native Visual Scripting
+- [ ] Shadows 
 - [ ] Game UI
 - [ ] Game Code
 - [ ] ImGui Viewport
@@ -49,3 +63,4 @@ Remember to `git clone recursive`
 - [ ] ImGuizmo - or Gizmos ourselves.
 - [ ] Port Scripting engine away from Sandbox
 - [ ] Add some kind of execution queue.
+	- [ ] Background Importers

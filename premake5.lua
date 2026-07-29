@@ -79,7 +79,7 @@ project "Engine"
     links 
     { 
         "d3d11.lib", "d3d12.lib", "dxgi.lib", "d3dcompiler.lib",
-        "zlib",
+        "zlib", "xaudio2.lib"
     }
 
     filter "configurations:Debug"
