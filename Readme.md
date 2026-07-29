@@ -69,7 +69,3 @@ Remember to `git clone --recursive`
 - [ ] Add some kind of execution queue.
 	- [ ] Background Importers
 - [ ] Entity Name should be editable.
-	
-# Bug
-
-- Viewport Drag and drop takes whole screen menu bar is not longer interactable.

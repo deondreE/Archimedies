@@ -3,12 +3,22 @@
 #include "archpch.h"
 #include "Math/ArchMath.h"
 #include "Entity.h"
+#include "AudioEngine.h"
 
 namespace Engine {
 	struct Scene {
 	public:
-		Scene() = default;
+		Scene() 
+		{
+			// Assumes that you want the Audio Engine in every Scene.
+			Engine::Audio::AudioEngine::Init();
+		}
 		~Scene() = default;
+
+		void AudioEngineUpdate()
+		{
+			Engine::Audio::AudioEngine::UpdateOneShotSoundPool();
+		}
 
 		Entity& CreateEntity(const std::string& name = "Entity") {
 			Entity e;
@@ -22,5 +32,6 @@ namespace Engine {
 
 	private:
 		std::vector<Entity> _Entities;
+
 	};
 }

@@ -17,7 +17,6 @@ public:
 
         _ScriptManager.InitAsync(scriptConfig);
 
-        Engine::Audio::AudioEngine::Init();
         _SoundPlayer = new Engine::Audio::Sound();
         auto soundPath = root / "Sounds/Test.wav";
         _SoundPlayer->Load(soundPath);
@@ -52,7 +51,7 @@ public:
     virtual void OnUpdate(Engine::Timestep ts) override {
         _Camera->OnUpdate(ts);
         _ScriptManager.ScriptTick(ts.GetSeconds());
-        Engine::Audio::AudioEngine::UpdateOneShotSoundPool();
+        _Scene->AudioEngineUpdate();
     }
 
     virtual void OnRender() override {
@@ -73,6 +72,10 @@ public:
 
     virtual void OnDetach() override {
         _ScriptManager.Shutdown();
+        // Cause it not a one shot sound
+        if (_SoundPlayer) {
+            delete _SoundPlayer;
+        }
     }
 private:
     Engine::Scene* _Scene;
