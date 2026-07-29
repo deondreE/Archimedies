@@ -102,7 +102,7 @@ project "Sandbox"
     system "Windows"
 
     files { "Sandbox/src/**.h", "Sandbox/src/**.cpp",  "Engine/Vendor/cora/Engine.Native/**.h", 
-        "Engine/Vendor/cora/Engine.Native/**.cpp" }
+        "Engine/Vendor/cora/Engine.Native/**.cpp", "Engine/src/**.rc" }
 
     includedirs 
     { 

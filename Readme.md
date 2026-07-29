@@ -26,7 +26,7 @@ Remember to `git clone --recursive`
 - [x] Audio
 	- [ ] 3D Audio
 - [ ] Audio UI
-	- [ ] Audio File Icon
+	- [x] Audio File Icon
 	- [ ] Audio UI
 	- [ ] Audio Indicator int the editor.
 - [x] Content Browser

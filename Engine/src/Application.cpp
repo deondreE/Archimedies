@@ -6,6 +6,7 @@
 #include "KeyEvent.h"
 #include "MouseEvent.h"
 #include "Event.h"
+#include "resource.h"
 #include "Math/TestMath.h"
 #include <windowsx.h>
 
@@ -42,6 +43,8 @@ namespace Engine {
 		wc.hInstance = GetModuleHandle(nullptr);
 		wc.lpszClassName = L"ArchimediesWindowClass";
 		wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+		wc.hIcon = LoadIconW(GetModuleHandle(nullptr), MAKEINTRESOURCEW(IDI_ICON1));
+		wc.hIconSm = wc.hIcon;
 
 		RegisterClassExW(&wc);
 
