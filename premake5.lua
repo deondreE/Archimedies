@@ -34,6 +34,9 @@ project "zlib"
     filter "configurations:Release"
         runtime "Release"
         optimize "On"
+		
+	filter "kind:not StaticLib"
+		defines { 'SOLUTION_DIR=LR"(' .. _MAIN_SCRIPT_DIR .. ')"' }
 
 project "Engine"
     location "Engine"

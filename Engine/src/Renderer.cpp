@@ -37,6 +37,22 @@ namespace Engine {
         }
 
         s_Data->WhiteTexture = Texture2D::CreateSolidColor(device, 0xFFFFFFFF);
+
+        D3D11_BLEND_DESC blendDesc = {};
+        blendDesc.RenderTarget[0].BlendEnable           = TRUE;
+        blendDesc.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
+        blendDesc.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
+        blendDesc.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ONE;
+        blendDesc.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_INV_SRC_ALPHA;
+        blendDesc.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        hr = device->CreateBlendState(&blendDesc, &s_Data->AlphaBlendState);
+        if (FAILED(hr)) {
+            LOG_ERROR("Renderer::Init failed to create AlphaBlendState. HRESULT: 0x%08X", hr);
+            return;
+        }
+
         (void)spec;
     }
 
@@ -96,6 +112,9 @@ namespace Engine {
 
     void Renderer::Flush() {
         auto* ctx = s_Data->Context;
+
+        const float blendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
+        ctx->OMSetBlendState(s_Data->AlphaBlendState.Get(), blendFactor, 0xFFFFFFFF);
         
         std::sort(s_Data->CommandQueue.begin(), s_Data->CommandQueue.end(),
             [](const RenderCommand& a, const RenderCommand& b) {
@@ -134,6 +153,9 @@ namespace Engine {
         }
 
         s_Data->CommandQueue.clear();
+
+        // Restore default (no blending) so ImGui and other passes are unaffected.
+        ctx->OMSetBlendState(nullptr, blendFactor, 0xFFFFFFFF);
     }
 
     void Renderer::EndScene() {

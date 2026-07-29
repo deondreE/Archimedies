@@ -8,6 +8,12 @@ namespace Engine {
     public:
         UUID() : _Value(s_UniformDistribution(s_Engine)) {}
         operator uint64_t() const { return _Value; }
+
+        [[nodiscard]] std::string ToString() const {
+            std::stringstream ss;
+            ss << std::hex << std::setfill('0') << std::setw(16) << _Value;
+            return ss.str();
+        }
     private:
         uint64_t _Value;
         static inline std::random_device s_RandomDevice;
@@ -21,9 +27,11 @@ namespace Engine {
         Math::Vec3 Position = { 0.0f, 0.0f, 0.0f };
         Math::Vec3 Rotation = { 0.0f, 0.0f, 0.0f };
         Math::Vec3 Scale = { 1.0f, 1.0f, 1.0f };
-
+            
         std::shared_ptr<Mesh> Mesh;
         std::shared_ptr<Material> Material;
+
+        std::string GetID() const { return ID.ToString(); }
 
         // (S * R * T)
         Math::Mat4 GetTransform() const {

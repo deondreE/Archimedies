@@ -94,10 +94,21 @@ namespace Engine {
         for (size_t i = 0; i < posAccessor.count; ++i) {
             vertices[i].Position = { posData[i * 3], posData[i * 3 + 1], posData[i * 3 + 2] };
 
+            // Default color to white so the shader's (texColor * col) pass-through works correctly.
+            vertices[i].Color[0] = 1.0f;
+            vertices[i].Color[1] = 1.0f;
+            vertices[i].Color[2] = 1.0f;
+            vertices[i].Color[3] = 1.0f;
+
             if (normalData) {
                 vertices[i].Normal[0] = normalData[i * 3];
                 vertices[i].Normal[1] = normalData[i * 3 + 1];
                 vertices[i].Normal[2] = normalData[i * 3 + 2];
+            } else {
+                // Default to up so lighting isn't zero when normals are absent.
+                vertices[i].Normal[0] = 0.0f;
+                vertices[i].Normal[1] = 1.0f;
+                vertices[i].Normal[2] = 0.0f;
             }
 
             if (uvData) {

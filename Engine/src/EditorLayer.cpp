@@ -2,6 +2,7 @@
 #include "EditorLayer.h"
 #include "Renderer.h" 
 #include "Input.h"
+#include "Texture.h"
 #include "imgui_internal.h"
 
 namespace Engine {
@@ -118,7 +119,9 @@ namespace Engine {
 
 			ImGui::Begin("ViewportDropTarget", nullptr, flags);
 
-				ImGui::InvisibleButton("##viewportdrop", centralNode->Size);
+			ImGui::InvisibleButton("##viewportdrop", centralNode->Size);
+
+			// @Todo: Change the name each time. 
 
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload =
@@ -126,17 +129,40 @@ namespace Engine {
 					std::string path((const char*)payload->Data, payload->DataSize - 1);
 					LOG_INFO("Dropped mesh into scene: %s", path.c_str());
 
-					// @Todo: Add Default Material.
-					// This will not work until the default material can be made.
-					auto t = _Scene->CreateEntity("test");
-					t.Mesh = Mesh::LoadFromFile(_Device, path);
+					auto& t = _Scene->CreateEntity("");
+					t.Name = "Model_" + t.GetID();
+					auto material = Material::GetDefault(_Device);
+					auto mesh = Mesh::LoadFromFile(_Device, path);
+					t.Position = { 0, 0, 0 };
+					t.Mesh = mesh;
+					t.Material = material;
 				}
 				if (const ImGuiPayload* payload =
 					ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXTURE")) {
 					std::string path((const char*)payload->Data, payload->DataSize - 1);
 					LOG_INFO("Dropped texture into scene: %s", path.c_str());
 
-					// @Todo: Add Support for 2D entities.
+					// @Todo: Textures do not render.
+					auto& t = _Scene->CreateEntity("");
+					t.Name = "Texture_" + t.GetID();
+					std::vector<Engine::Vertex> quad_verts = {
+						{{-0.5f,  0.5f, 0.0f}, {1, 1, 1, 1}, {0.0f, 0.0f}, {0, 0, -1}}, // top-left
+						{{ 0.5f,  0.5f, 0.0f}, {1, 1, 1, 1}, {1.0f, 0.0f}, {0, 0, -1}}, // top-right
+						{{ 0.5f, -0.5f, 0.0f}, {1, 1, 1, 1}, {1.0f, 1.0f}, {0, 0, -1}}, // bottom-right
+						{{-0.5f, -0.5f, 0.0f}, {1, 1, 1, 1}, {0.0f, 1.0f}, {0, 0, -1}}, // bottom-left
+					};
+					std::vector<uint32_t> indices = {
+						0, 1, 2,
+						0, 2, 3
+					};
+					auto mesh = Engine::Mesh::Create(_Device, quad_verts, indices);
+					auto texture = Engine::Texture2D::Create(_Device, path);
+					std::cout << path;
+					auto shader = Engine::Shader::Create(_Device, Material::GetDefaultShaderPath());
+					auto mat = std::make_shared<Material>(shader, texture);
+					t.Mesh = mesh;
+					t.Material = mat;
+					t.Position = { 0, 0, 0 };
 				}
 				ImGui::EndDragDropTarget();
 			}

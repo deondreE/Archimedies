@@ -165,4 +165,13 @@ namespace Engine {
 
 		return texture;
 	}
+
+	std::shared_ptr<Texture2D> Texture2D::GetDefaultTexture(ID3D11Device* device) {
+		static std::shared_ptr<Texture2D> s_WhiteTexture;
+		if (!s_WhiteTexture) {
+			const uint8_t whitePixel = 0xFFFFFFFF;
+			s_WhiteTexture = Texture2D::CreateFromRGBA(device, 1, 1, &whitePixel);
+		}
+		return s_WhiteTexture;
+	}
 }

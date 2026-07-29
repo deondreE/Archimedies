@@ -75,6 +75,7 @@ namespace Engine {
 			std::vector<RenderCommand> CommandQueue;
 			ShaderLibrary Shaders;
 			std::shared_ptr<Texture2D> WhiteTexture;
+			Microsoft::WRL::ComPtr<ID3D11BlendState> AlphaBlendState;
 		};
 
 		static RendererData* s_Data;
