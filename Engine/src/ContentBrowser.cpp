@@ -180,6 +180,7 @@ namespace Engine {
 					const char* payloadType = "CONTENT_BROWSER_ITEM";
 					if (ext == ".hlsl" || ext == ".glsl" || ext == ".metal") { payloadType = "CONTENT_BROWSER_SHADER"; }
 					else if (ext == ".obj" || ext == ".fbx" || ext == ".glb" || ext == ".gltf") { iconTexture = GetOrLoadThumbnail(path); payloadType = "CONTENT_BROWSER_MESH"; }
+					else if (ext == ".wav" || ext == ".ogg" || ext == ".mp3") { payloadType = "CONTENT_BROWSER_SOUND"; }
 
 					if (iconTexture) {
 						ImGui::ImageButton(filename.c_str(), (ImTextureID)iconTexture->GetSRV(),

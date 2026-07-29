@@ -12,7 +12,7 @@ And Some debug window to be an Overlay, then renders on top, but recieves mouse 
 Keep the focus on the Viewport the "Game Screen" is the focus everything can be turned off or on.
 Opened panels are always Dockable to the main window, but they would not always have to take up space in the viewport.
 
-Remember to `git clone recursive`
+Remember to `git clone --recursive`
 
 ## TODO:
 
@@ -23,10 +23,12 @@ Remember to `git clone recursive`
 - [ ] 2D Renderer
 - [ ] 2.5D Native Support
 - [ ] 2D Physics
-- [ ] Audio
-	- XAudio2
-	- SFX
-	- Music Track
+- [x] Audio
+	- [ ] 3D Audio
+- [ ] Audio UI
+	- [ ] Audio File Icon
+	- [ ] Audio UI
+	- [ ] Audio Indicator int the editor.
 - [x] Content Browser
 - [x] Image Thumbnails
 - [ ] Gamepad Input
@@ -42,7 +44,9 @@ Remember to `git clone recursive`
 	- Headless engine maybe?
 - [ ] Scripting
 	- C#
+		- [ ] Audio API is technically done we just need to make it work in C#.
 	- Rust
+- [ ] Press `F` to focus camera on object 
 - [ ] Editor UI -- Started
 - [ ] Multi-Material Meshes
 - [ ] Skybox
@@ -64,3 +68,7 @@ Remember to `git clone recursive`
 - [ ] Port Scripting engine away from Sandbox
 - [ ] Add some kind of execution queue.
 	- [ ] Background Importers
+	
+# Bug
+
+- Viewport Drag and drop takes whole screen menu bar is not longer interactable.

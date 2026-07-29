@@ -1,35 +1,34 @@
 #pragma once
 #include "archpch.h"
-#include <filesystem>
-#include <xaudio2.h>
 #include <concepts>
+#include <filesystem>
 #include <numbers>
-#include <memory>
-#include <algorithm>
-#include <random>
-#include <vector>
+#include <xaudio2.h>
 
 namespace Engine::Audio {
 
-    // --- Concepts & Macros ---
+    // @Todo: 3d Audio is the only thing left i'm pretty sure.
+    // @Todo: There is no UI around audio at all.
+
     template<typename T>
     concept FloatingPoint = std::is_floating_point_v<T>;
 
+    // Use XAudio2 built-in macros for FOURCC to avoid cast warnings
 #ifndef fourccRIFF
-#ifdef _XBOX
-#define fourccRIFF 'RIFF'
-#define fourccDATA 'data'
-#define fourccFMT 'fmt '
-#define fourccWAVE 'WAVE'
-#else
-#define fourccRIFF 'FFIR'
-#define fourccDATA 'atad'
-#define fourccFMT ' tmf'
-#define fourccWAVE 'EVAW'
-#endif
+#define fourccRIFF (DWORD)'FFIR'
+#define fourccDATA (DWORD)'atad'
+#define fourccFMT  (DWORD)' tmf'
+#define fourccWAVE (DWORD)'EVAW'
 #endif
 
 #define MAX_CHANNELS_PAN 16
+
+    enum class BusType { Master, SFX, Music };
+
+    struct AudioBufferResource {
+        WAVEFORMATEXTENSIBLE Format = { 0 };
+        std::vector<BYTE> Data;
+    };
 
     class SoundCallback : public IXAudio2VoiceCallback {
     public:
@@ -39,18 +38,9 @@ namespace Engine::Audio {
         void OnVoiceError(void*, HRESULT) override {}
         void OnBufferStart(void*) override {}
         void OnBufferEnd(void* pContext) override {
-            if (pContext) {
-                *static_cast<bool*>(pContext) = false;
-            }
+            if (pContext) *static_cast<bool*>(pContext) = false;
         }
         void OnLoopEnd(void*) override {}
-    };
-
-    enum class BusType { Master, SFX, Music };
-
-    struct AudioBufferResource {
-        WAVEFORMATEXTENSIBLE Format = { 0 };
-        std::vector<BYTE> Data;
     };
 
     inline SoundCallback g_VoiceCallback;
@@ -62,60 +52,62 @@ namespace Engine::Audio {
         static constexpr size_t MAX_VOICES = 32;
 
         static void Init() { Get().instance_Init(); }
-        static IXAudio2* GetContext() { return Get()._XAudio; }
         static void Shutdown() { Get().instance_Shutdown(); }
-        
+        static IXAudio2* GetContext() { return Get()._XAudio; }
+
         static void SetBusVolume(BusType bus, float volume) {
-            Get().GetBus(bus)->SetVolume(std::clamp(volume, 0.0f, 1.0f));
+            GetBusVoice(bus)->SetVolume(std::clamp(volume, 0.0f, 1.0f));
         }
 
-        static IXAudio2Voice* GetBus(BusType bus) {
+        static float GetBusVolume(BusType bus) {
+            float vol = 0.0f;
+            GetBusVoice(bus)->GetVolume(&vol);
+            return vol;
+        }
+
+        static IXAudio2Voice* GetBusVoice(BusType bus) {
             auto& engine = Get();
-            switch (bus) {
-                case BusType::SFX: return engine._SFXBus;
-                case BusType::Music: return engine._MusicBus;
-                default: return engine._XAudioMasterVoice;
-            }
+            if (bus == BusType::SFX && engine._SFXBus) return engine._SFXBus;
+            if (bus == BusType::Music && engine._MusicBus) return engine._MusicBus;
+            return engine._XAudioMasterVoice;
         }
 
         static std::shared_ptr<AudioBufferResource> GetOrCreateResource(const std::filesystem::path& path);
         static void PlayOneShot(const std::filesystem::path& path, float volume = 1.0f, float pitch = 1.0f, float pan = 0.0f);
 
+        static void ClearCache() { Get()._resourceCache.clear(); }
+        static size_t GetActiveVoiceCount() { return Get()._oneShotPool.size(); }
+
         static void UpdateOneShotSoundPool() {
-            auto& pool = Get()._oneShotPool;
-            std::erase_if(pool, [](const auto& sound) {
+            std::erase_if(Get()._oneShotPool, [](const auto& sound) {
                 return !sound->IsPlaying();
-            });
+                });
         }
 
     private:
-        static AudioEngine& Get() {
-            static AudioEngine instance;
-            return instance;
-        }
+        static AudioEngine& Get() { static AudioEngine instance; return instance; }
 
         void instance_Init() {
             if (FAILED(::CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return;
-            ::XAudio2Create(&_XAudio, 0, XAUDIO2_DEFAULT_PROCESSOR);
-            _XAudio->CreateMasteringVoice(&_XAudioMasterVoice);
-
-            // Create submixes
+            if (FAILED(::XAudio2Create(&_XAudio, 0, XAUDIO2_DEFAULT_PROCESSOR))) return;
+            if (FAILED(_XAudio->CreateMasteringVoice(&_XAudioMasterVoice))) return;
             _XAudio->CreateSubmixVoice(&_SFXBus, 2, 44100);
             _XAudio->CreateSubmixVoice(&_MusicBus, 2, 44100);
         }
 
         void instance_Shutdown() {
             _oneShotPool.clear();
-            if (_SFXBus) _SFXBus->DestroyVoice();
-            if (_MusicBus) _MusicBus->DestroyVoice();
-            if (_XAudioMasterVoice) _XAudioMasterVoice->DestroyVoice();
-            if (_XAudio) _XAudio->Release();
+            _resourceCache.clear();
+            if (_SFXBus) { _SFXBus->DestroyVoice(); _SFXBus = nullptr; }
+            if (_MusicBus) { _MusicBus->DestroyVoice(); _MusicBus = nullptr; }
+            if (_XAudioMasterVoice) { _XAudioMasterVoice->DestroyVoice(); _XAudioMasterVoice = nullptr; }
+            if (_XAudio) { _XAudio->Release(); _XAudio = nullptr; }
             ::CoUninitialize();
         }
 
         IXAudio2MasteringVoice* _XAudioMasterVoice{ nullptr };
-        IXAudio2SubmixVoice* _SFXBus = { nullptr };
-        IXAudio2SubmixVoice* _MusicBus = { nullptr };
+        IXAudio2SubmixVoice* _SFXBus{ nullptr };
+        IXAudio2SubmixVoice* _MusicBus{ nullptr };
         IXAudio2* _XAudio{ nullptr };
 
         std::unordered_map<std::string, std::shared_ptr<AudioBufferResource>> _resourceCache;
@@ -131,36 +123,51 @@ namespace Engine::Audio {
             _Resource = AudioEngine::GetOrCreateResource(audioFile);
         }
 
-        bool IsPlaying() const { return _Playing; }
-
         template<FloatingPoint T = float>
         void PlaySound(T volume = 1.0f, T pitch = 1.0f, T pan = 0.0f, bool loop = false, BusType bus = BusType::SFX) {
             if (!_Resource) return;
-           
+
             if (!_XAudioSourceVoice) {
-                XAUDIO2_SEND_DESCRIPTOR sendDesc = { 0, AudioEngine::GetBus(bus) };
+                XAUDIO2_SEND_DESCRIPTOR sendDesc = { 0, AudioEngine::GetBusVoice(bus) };
                 XAUDIO2_VOICE_SENDS sendList = { 1, &sendDesc };
-                AudioEngine::GetContext()->CreateSourceVoice(&_XAudioSourceVoice, (WAVEFORMATEX*)&_Resource->Format, 0, 2.0f, &g_VoiceCallback, &sendList);
+                if (FAILED(AudioEngine::GetContext()->CreateSourceVoice(&_XAudioSourceVoice, (WAVEFORMATEX*)&_Resource->Format, 0, 2.0f, &g_VoiceCallback, &sendList)))
+                {
+                    return;
+                }
             }
 
             _Playing = true;
-            XAUDIO2_BUFFER xBuffer = { 0 }; 
-            xBuffer.AudioBytes = (UINT32)_Resource->Data.size();
+            _Loop = loop;
+
+            XAUDIO2_BUFFER xBuffer = { 0 };
+            xBuffer.AudioBytes = static_cast<UINT32>(_Resource->Data.size());
             xBuffer.pAudioData = _Resource->Data.data();
             xBuffer.Flags = XAUDIO2_END_OF_STREAM;
             xBuffer.pContext = &_Playing;
-            xBuffer.LoopCount = loop ? XAUDIO2_LOOP_INFINITE : 0;
+            xBuffer.LoopCount = _Loop ? XAUDIO2_LOOP_INFINITE : 0;
 
-            _XAudioSourceVoice->SetVolume(std::clamp(static_cast<float>(volume), 0.0f, 1.0f));
-            _XAudioSourceVoice->SetFrequencyRatio(std::clamp(static_cast<float>(pitch), 0.001f, 10.0f));
-            ApplyPan(static_cast<float>(pan));
+            SetVolume(static_cast<float>(volume));
+            SetPitch(static_cast<float>(pitch));
+            SetPan(static_cast<float>(pan));
 
-            _XAudioSourceVoice->SubmitSourceBuffer(&xBuffer);
-            _XAudioSourceVoice->Start(0);
+            if (SUCCEEDED(_XAudioSourceVoice->SubmitSourceBuffer(&xBuffer))) {
+                _XAudioSourceVoice->Start(0);
+            }
         }
 
-      
+        void Stop() {
+            if (_XAudioSourceVoice) {
+                _XAudioSourceVoice->Stop(0);
+                _XAudioSourceVoice->FlushSourceBuffers();
+                _Playing = false;
+            }
+        }
+
+        void Pause() { if (_XAudioSourceVoice) _XAudioSourceVoice->Stop(0); }
+        void Resume() { if (_XAudioSourceVoice) _XAudioSourceVoice->Start(0); }
+
         void Release() {
+            Stop();
             if (_XAudioSourceVoice) { _XAudioSourceVoice->DestroyVoice(); _XAudioSourceVoice = nullptr; }
             _Resource.reset();
         }
@@ -171,87 +178,114 @@ namespace Engine::Audio {
             PlaySound(baseVol + dist(gen), basePitch + dist(gen), 0.0f);
         }
 
+        void SetVolume(float volume) {
+            _Volume = std::clamp(volume, 0.0f, 1.0f);
+            if (_XAudioSourceVoice) _XAudioSourceVoice->SetVolume(_Volume);
+        }
+
+        void SetPitch(float pitch) {
+            _Pitch = std::clamp(pitch, 0.0001f, 10.0f);
+            if (_XAudioSourceVoice) _XAudioSourceVoice->SetFrequencyRatio(_Pitch);
+        }
+
+        void SetPitchSemitones(float semitones) { SetPitch(std::pow(2.0f, semitones / 12.0f)); }
+
+        void SetPan(float pan) {
+            _Pan = std::clamp(pan, -1.0f, 1.0f);
+            ApplyPanMatrix();
+        }
+
+        void SetLooping(bool loop) { _Loop = loop; }
+
+        [[nodiscard]] bool IsPlaying() const { return _Playing; }
+        [[nodiscard]] float GetVolume() const { return _Volume; }
+        [[nodiscard]] float GetPitch() const { return _Pitch; }
+        [[nodiscard]] float GetPan() const { return _Pan; }
+        [[nodiscard]] bool IsLooping() const { return _Loop; }
+
     private:
-        void ApplyPan(float pan) {
+        void ApplyPanMatrix() {
             if (!_XAudioSourceVoice) return;
             XAUDIO2_VOICE_DETAILS details;
             _XAudioSourceVoice->GetVoiceDetails(&details);
 
             float matrix[MAX_CHANNELS_PAN];
-            float angle = (std::clamp(pan, -1.0f, 1.0f) + 1.0f) * (std::numbers::pi_v<float> / 4.0f);
+            float angle = (_Pan + 1.0f) * (std::numbers::pi_v<float> / 4.0f);
             float left = std::cos(angle);
             float right = std::sin(angle);
 
-            if (details.InputChannels == 1) { // Mono to Stereo
+            if (details.InputChannels == 1) {
                 matrix[0] = left; matrix[1] = right;
             }
-            else { // Stereo to Stereo
+            else {
                 matrix[0] = left; matrix[1] = 0.0f; matrix[2] = 0.0f; matrix[3] = right;
             }
             _XAudioSourceVoice->SetOutputMatrix(nullptr, details.InputChannels, 2, matrix);
         }
 
-        bool _Playing = false;
         std::shared_ptr<AudioBufferResource> _Resource;
         IXAudio2SourceVoice* _XAudioSourceVoice{ nullptr };
+        bool _Loop = false;
+        bool _Playing = false;
+        float _Volume = 1.0f;
+        float _Pitch = 1.0f;
+        float _Pan = 0.0f;
     };
 
     inline void AudioEngine::PlayOneShot(const std::filesystem::path& path, float volume, float pitch, float pan) {
-        auto& pool = Get()._oneShotPool;
-        if (pool.size() >= MAX_VOICES) return;
-
+        if (Get()._oneShotPool.size() >= MAX_VOICES) return;
         auto shot = std::make_unique<Sound>();
         shot->Load(path);
         shot->PlaySound(volume, pitch, pan, false);
-        pool.push_back(std::move(shot));
+        Get()._oneShotPool.push_back(std::move(shot));
     }
 
     inline std::shared_ptr<AudioBufferResource> AudioEngine::GetOrCreateResource(const std::filesystem::path& path) {
         auto& cache = Get()._resourceCache;
         std::string key = path.string();
 
-        // not in cache
+        if (cache.contains(key)) return cache[key];
+
         auto resource = std::make_shared<AudioBufferResource>();
         HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
         if (file == INVALID_HANDLE_VALUE) return nullptr;
 
-        auto FindInFile = [&](DWORD fourcc, DWORD& size, DWORD& pos) {
-            SetFilePointer(file, 0, NULL, FILE_BEGIN);
+        auto FindInFile = [&](DWORD fourcc, DWORD& size, DWORD& pos) -> bool {
+            if (INVALID_SET_FILE_POINTER == SetFilePointer(file, 0, NULL, FILE_BEGIN)) return false;
             DWORD type, dSize, riffSize = 0, fType, offset = 0;
-            while (ReadFile(file, &type, 4, &dSize, NULL) && ReadFile(file, &dSize, 4, &fType, NULL)) {
+            DWORD bytesRead = 0;
+            while (ReadFile(file, &type, 4, &bytesRead, NULL) && ReadFile(file, &dSize, 4, &bytesRead, NULL)) {
                 offset += 8;
                 if (type == fourccRIFF) {
-                    riffSize = dSize;
-                    dSize = 4;
-                    if (FAILED(ReadFile(file, &fType, 4, &type, NULL))) return false;
+                    riffSize = dSize; dSize = 4;
+                    if (!ReadFile(file, &fType, 4, &bytesRead, NULL)) return false;
                 }
                 else {
-                    SetFilePointer(file, dSize, NULL, FILE_CURRENT);
+                    if (INVALID_SET_FILE_POINTER == SetFilePointer(file, dSize, NULL, FILE_CURRENT)) return false;
                 }
                 if (type == fourcc) {
-                    size = dSize;
-                    pos = offset;
-                    return true;
+                    size = dSize; pos = offset; return true;
                 }
                 offset += dSize;
                 if (riffSize > 0 && offset >= riffSize) break;
             }
+            return false;
         };
 
-        DWORD sz, pos;
+        DWORD sz = 0, pos = 0;
+        DWORD read = 0;
         if (FindInFile(fourccFMT, sz, pos)) {
             SetFilePointer(file, pos, NULL, FILE_BEGIN);
-            if (FAILED(ReadFile(file, &resource->Format, sz, &sz, NULL))) return false; 
+            if (!ReadFile(file, &resource->Format, sz, &read, NULL)) { CloseHandle(file); return nullptr; }
         }
         if (FindInFile(fourccDATA, sz, pos)) {
             resource->Data.resize(sz);
             SetFilePointer(file, pos, NULL, FILE_BEGIN);
-            if (FAILED(ReadFile(file, resource->Data.data(), sz, &sz, NULL))) return false;
+            if (!ReadFile(file, resource->Data.data(), sz, &read, NULL)) { CloseHandle(file); return nullptr; }
         }
         CloseHandle(file);
 
-        cache[key] = resource;
-        return resource;
+        return cache[key] = resource;
     }
 
 } // namespace Engine::Audio
