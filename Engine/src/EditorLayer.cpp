@@ -4,6 +4,8 @@
 #include "Input.h"
 #include "Texture.h"
 #include "imgui_internal.h"
+#include "AudioEngine.h"
+#include <deque>
 
 namespace Engine {
 
@@ -21,9 +23,10 @@ namespace Engine {
 		}
 	}
 
+
 	void EditorLayer::OnImGuiRender() {
 		auto& entities = _Scene->GetEntities();
-		
+	
 		if (_ShowContentBrowser) {
 			_ContentBrowser.OnImGuiRender(_ShowContentBrowser);
 		}
@@ -37,6 +40,21 @@ namespace Engine {
 					_SelectedIndex = i;
 				}
 			}
+			ImGui::End();
+
+			ImGui::Begin("Audio");
+				float masterVol = Audio::AudioEngine::GetBusVolume(Audio::BusType::Master);
+				ImGui::DragFloat("Master Volume", &masterVol, 0.1f, 0.0, 1.0f);
+				Audio::AudioEngine::SetBusVolume(Audio::BusType::Master, masterVol);
+
+				float sfxVol = Audio::AudioEngine::GetBusVolume(Audio::BusType::SFX);
+				ImGui::DragFloat("SFX Volume", &sfxVol, 0.1f, 0.0, 1.0f);
+				Audio::AudioEngine::SetBusVolume(Audio::BusType::SFX, sfxVol);
+
+				float musicVolume = Audio::AudioEngine::GetBusVolume(Audio::BusType::Music);
+				ImGui::DragFloat("Music Volume", &musicVolume, 0.1f, 0.0, 1.0f);
+				Audio::AudioEngine::SetBusVolume(Audio::BusType::Music, musicVolume);
+
 			ImGui::End();
 		}
 
@@ -62,6 +80,12 @@ namespace Engine {
 				if (e.Material && e.Material->GetTexture()) textureLabel = "Assinged";
 
 				ImGui::Button(textureLabel.c_str(), ImVec2(120, 0));
+
+				// Render the specific component the way it wants.
+				for (auto& comp : e.Components)
+				{
+					comp->OnImGuiRender();
+				}
 
 				if (ImGui::BeginDragDropTarget()) {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_TEXTURE")) {

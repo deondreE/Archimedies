@@ -79,7 +79,7 @@ project "Engine"
     links 
     { 
         "d3d11.lib", "d3d12.lib", "dxgi.lib", "d3dcompiler.lib",
-        "zlib", "xaudio2.lib"
+        "zlib", "xaudio2.lib", "xapobase.lib"
     }
 
     filter "configurations:Debug"
@@ -90,6 +90,9 @@ project "Engine"
         defines { "NDEBUG" }
         runtime "Release"
         optimize "On"
+	filter "system:windows"
+        systemversion "latest" 
+        defines { "WIN32_LEAN_AND_MEAN", "_WIN32_WINNT=0x0A00" }
 
 project "Sandbox"
     location "Sandbox"

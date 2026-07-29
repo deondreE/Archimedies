@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <numbers>
 #include <xaudio2.h>
+#include <xapo.h>      
 
 namespace Engine::Audio {
 
@@ -74,6 +75,11 @@ namespace Engine::Audio {
             return engine._XAudioMasterVoice;
         }
 
+        static std::unordered_map<std::string, std::shared_ptr<AudioBufferResource>> GetCache() {
+            auto& engine = Get();
+            return engine._resourceCache;
+        }
+
         // Ensures that loading a file will only happen once.
         static std::shared_ptr<AudioBufferResource> GetOrCreateResource(const std::filesystem::path& path);
 
@@ -97,6 +103,7 @@ namespace Engine::Audio {
             if (FAILED(::XAudio2Create(&_XAudio, 0, XAUDIO2_DEFAULT_PROCESSOR))) return;
             if (FAILED(_XAudio->CreateMasteringVoice(&_XAudioMasterVoice))) return;
             _XAudio->CreateSubmixVoice(&_SFXBus, 2, 44100);
+
             _XAudio->CreateSubmixVoice(&_MusicBus, 2, 44100);
         }
 

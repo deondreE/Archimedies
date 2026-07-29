@@ -2,25 +2,10 @@
 #include "archpch.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "Component.h"
 
 namespace Engine {
-    class UUID {
-    public:
-        UUID() : _Value(s_UniformDistribution(s_Engine)) {}
-        operator uint64_t() const { return _Value; }
-
-        [[nodiscard]] std::string ToString() const {
-            std::stringstream ss;
-            ss << std::hex << std::setfill('0') << std::setw(16) << _Value;
-            return ss.str();
-        }
-    private:
-        uint64_t _Value;
-        static inline std::random_device s_RandomDevice;
-        static inline std::mt19937_64 s_Engine{ s_RandomDevice() };
-        static inline std::uniform_int_distribution<uint64_t> s_UniformDistribution;
-    };
-
+   
     struct Entity {
         UUID ID;
         std::string Name;
@@ -30,6 +15,28 @@ namespace Engine {
             
         std::shared_ptr<Mesh> Mesh;
         std::shared_ptr<Material> Material;
+
+        std::vector<std::unique_ptr<Component::Component>> Components;
+
+        template<typename T, typename... Args>
+        T& AddComponent(Args&&... args) 
+        {
+            static_assert(std::is_base_of_v<Component::Component>, "T must inherit from Component");
+            auto newComponent = std::make_unique<T>(std::forward<Args>(args)...);
+            T& ref = *newComponent;
+            Component.push_back(std::move(newComponent));
+            return ref;
+        }
+
+        template<typename T>
+        T* GetComponent() {
+            static_assert(std::is_base_of_v<Component::Component>, "T must inherit from Component");
+            for (auto& comp : Components) {
+                T* target = dynamic_cast<T*>(comp.get());
+                if (target) return target;
+            }
+            return nullptr;
+        }
 
         std::string GetID() const { return ID.ToString(); }
 

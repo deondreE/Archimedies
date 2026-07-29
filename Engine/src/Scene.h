@@ -32,6 +32,5 @@ namespace Engine {
 
 	private:
 		std::vector<Entity> _Entities;
-
 	};
 }
