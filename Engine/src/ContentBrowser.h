@@ -19,6 +19,7 @@ namespace Engine {
 		std::shared_ptr<Texture2D> _MeshIconTexture;
 		std::shared_ptr<Texture2D> _FileIconTexture;
 		std::shared_ptr<Texture2D> _DirIconTexture;
+		std::shared_ptr<Texture2D> _SoundFileIconTexture;
 
 		ID3D11Device* _Device;
 		fs::path _AssetRoot;

@@ -29,9 +29,11 @@ namespace Engine {
 		fs::path meshIconPath = _AssetRoot / "Resources" / "Icons" / "MeshIcon.png";
 		fs::path dirIconPath = _AssetRoot / "Resources" / "Icons" / "DirIcon.png";
 		fs::path fileIconPath = _AssetRoot / "Resources" / "Icons" / "FileIcon.png";
+		fs::path soundFileIconPath = _AssetRoot / "Resources" / "Icons" / "SoundFileIcon.png";
 		_MeshIconTexture = Texture2D::Create(_Device, meshIconPath.string(), false);
 		_DirIconTexture = Texture2D::Create(_Device, dirIconPath.string(), false);
 		_FileIconTexture = Texture2D::Create(_Device, fileIconPath.string(), false);
+		_SoundFileIconTexture = Texture2D::Create(_Device, soundFileIconPath.string(), false);
 	}
 
 	std::shared_ptr<Texture2D> ContentBrowserPanel::GetOrLoadThumbnail(const fs::path& path) {
@@ -68,6 +70,9 @@ namespace Engine {
 		else if (ext == ".glb" || ext == ".gltf" || ext == ".obj" || ext == ".fbx") {
 			return _MeshIconTexture;
 		}
+		else if (ext == "wav") {
+			return _SoundFileIconTexture;
+ 		}
 		else {
 			texture = Texture2D::Create(
 				_Device,
@@ -180,7 +185,7 @@ namespace Engine {
 					const char* payloadType = "CONTENT_BROWSER_ITEM";
 					if (ext == ".hlsl" || ext == ".glsl" || ext == ".metal") { payloadType = "CONTENT_BROWSER_SHADER"; }
 					else if (ext == ".obj" || ext == ".fbx" || ext == ".glb" || ext == ".gltf") { iconTexture = GetOrLoadThumbnail(path); payloadType = "CONTENT_BROWSER_MESH"; }
-					else if (ext == ".wav" || ext == ".ogg" || ext == ".mp3") { payloadType = "CONTENT_BROWSER_SOUND"; }
+					else if (ext == ".wav" || ext == ".ogg" || ext == ".mp3") { iconTexture = _SoundFileIconTexture; payloadType = "CONTENT_BROWSER_SOUND"; }
 
 					if (iconTexture) {
 						ImGui::ImageButton(filename.c_str(), (ImTextureID)iconTexture->GetSRV(),
