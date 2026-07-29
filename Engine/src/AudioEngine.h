@@ -31,7 +31,6 @@ namespace Engine::Audio {
 
 #define MAX_CHANNELS_PAN 16
 
-    // --- Callbacks ---
     class SoundCallback : public IXAudio2VoiceCallback {
     public:
         void OnStreamEnd() override {}
@@ -47,12 +46,17 @@ namespace Engine::Audio {
         void OnLoopEnd(void*) override {}
     };
 
+    enum class BusType { Master, SFX, Music };
+
+    struct AudioBufferResource {
+        WAVEFORMATEXTENSIBLE Format = { 0 };
+        std::vector<BYTE> Data;
+    };
+
     inline SoundCallback g_VoiceCallback;
 
-    // --- Forward Declarations ---
     class Sound;
 
-    // --- AudioEngine Definition ---
     class AudioEngine {
     public:
         static constexpr size_t MAX_VOICES = 32;
@@ -60,7 +64,21 @@ namespace Engine::Audio {
         static void Init() { Get().instance_Init(); }
         static IXAudio2* GetContext() { return Get()._XAudio; }
         static void Shutdown() { Get().instance_Shutdown(); }
+        
+        static void SetBusVolume(BusType bus, float volume) {
+            Get().GetBus(bus)->SetVolume(std::clamp(volume, 0.0f, 1.0f));
+        }
 
+        static IXAudio2Voice* GetBus(BusType bus) {
+            auto& engine = Get();
+            switch (bus) {
+                case BusType::SFX: return engine._SFXBus;
+                case BusType::Music: return engine._MusicBus;
+                default: return engine._XAudioMasterVoice;
+            }
+        }
+
+        static std::shared_ptr<AudioBufferResource> GetOrCreateResource(const std::filesystem::path& path);
         static void PlayOneShot(const std::filesystem::path& path, float volume = 1.0f, float pitch = 1.0f, float pan = 0.0f);
 
         static void UpdateOneShotSoundPool() {
@@ -80,17 +98,27 @@ namespace Engine::Audio {
             if (FAILED(::CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return;
             ::XAudio2Create(&_XAudio, 0, XAUDIO2_DEFAULT_PROCESSOR);
             _XAudio->CreateMasteringVoice(&_XAudioMasterVoice);
+
+            // Create submixes
+            _XAudio->CreateSubmixVoice(&_SFXBus, 2, 44100);
+            _XAudio->CreateSubmixVoice(&_MusicBus, 2, 44100);
         }
 
         void instance_Shutdown() {
             _oneShotPool.clear();
+            if (_SFXBus) _SFXBus->DestroyVoice();
+            if (_MusicBus) _MusicBus->DestroyVoice();
             if (_XAudioMasterVoice) _XAudioMasterVoice->DestroyVoice();
             if (_XAudio) _XAudio->Release();
             ::CoUninitialize();
         }
 
         IXAudio2MasteringVoice* _XAudioMasterVoice{ nullptr };
+        IXAudio2SubmixVoice* _SFXBus = { nullptr };
+        IXAudio2SubmixVoice* _MusicBus = { nullptr };
         IXAudio2* _XAudio{ nullptr };
+
+        std::unordered_map<std::string, std::shared_ptr<AudioBufferResource>> _resourceCache;
         std::vector<std::unique_ptr<Sound>> _oneShotPool;
     };
 
@@ -100,76 +128,47 @@ namespace Engine::Audio {
         ~Sound() { Release(); }
 
         void Load(const std::filesystem::path& audioFile) {
-            HANDLE File = CreateFileW(audioFile.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-            if (INVALID_HANDLE_VALUE == File) return;
-
-            // RIFF
-            DWORD ChunkSize, ChunkPosition;
-            FindChunk(File, fourccRIFF, ChunkSize, ChunkPosition);
-            
-            // TYPE
-            DWORD FileType;
-            ReadChunkData(File, &FileType, sizeof(DWORD), ChunkPosition);
-            if (FileType != fourccWAVE) { CloseHandle(File); return; }
-
-            // FMT
-            FindChunk(File, fourccFMT, ChunkSize, ChunkPosition);
-            ReadChunkData(File, &_Wfx, ChunkSize, ChunkPosition);
-
-            // DATA
-            FindChunk(File, fourccDATA, ChunkSize, ChunkPosition);
-            BYTE* DataBuffer = new BYTE[ChunkSize];
-            ReadChunkData(File, DataBuffer, ChunkSize, ChunkPosition);
-
-            _Buffer.AudioBytes = ChunkSize;
-            _Buffer.pAudioData = DataBuffer;
-            _Buffer.Flags = XAUDIO2_END_OF_STREAM;
-            _Buffer.pContext = &_Playing;
-
-            CloseHandle(File);
+            _Resource = AudioEngine::GetOrCreateResource(audioFile);
         }
 
         bool IsPlaying() const { return _Playing; }
 
         template<FloatingPoint T = float>
-        void PlaySound(T volume = 1.0f, T pitch = 1.0f, T pan = 0.0f, bool loop = false) {
-            IXAudio2* ctx = AudioEngine::GetContext();
-            if (!ctx || !_Buffer.pAudioData) return;
-
+        void PlaySound(T volume = 1.0f, T pitch = 1.0f, T pan = 0.0f, bool loop = false, BusType bus = BusType::SFX) {
+            if (!_Resource) return;
+           
             if (!_XAudioSourceVoice) {
-                ctx->CreateSourceVoice(&_XAudioSourceVoice, (WAVEFORMATEX*)&_Wfx, 0, 2.0f, &g_VoiceCallback);
+                XAUDIO2_SEND_DESCRIPTOR sendDesc = { 0, AudioEngine::GetBus(bus) };
+                XAUDIO2_VOICE_SENDS sendList = { 1, &sendDesc };
+                AudioEngine::GetContext()->CreateSourceVoice(&_XAudioSourceVoice, (WAVEFORMATEX*)&_Resource->Format, 0, 2.0f, &g_VoiceCallback, &sendList);
             }
 
             _Playing = true;
-            _Buffer.LoopCount = loop ? XAUDIO2_LOOP_INFINITE : 0;
+            XAUDIO2_BUFFER xBuffer = { 0 }; 
+            xBuffer.AudioBytes = (UINT32)_Resource->Data.size();
+            xBuffer.pAudioData = _Resource->Data.data();
+            xBuffer.Flags = XAUDIO2_END_OF_STREAM;
+            xBuffer.pContext = &_Playing;
+            xBuffer.LoopCount = loop ? XAUDIO2_LOOP_INFINITE : 0;
 
-            SetVolume(static_cast<float>(volume));
-            SetPitch(static_cast<float>(pitch));
+            _XAudioSourceVoice->SetVolume(std::clamp(static_cast<float>(volume), 0.0f, 1.0f));
+            _XAudioSourceVoice->SetFrequencyRatio(std::clamp(static_cast<float>(pitch), 0.001f, 10.0f));
             ApplyPan(static_cast<float>(pan));
 
-            _XAudioSourceVoice->SubmitSourceBuffer(&_Buffer);
+            _XAudioSourceVoice->SubmitSourceBuffer(&xBuffer);
             _XAudioSourceVoice->Start(0);
         }
 
-        void Stop() { if (_XAudioSourceVoice) _XAudioSourceVoice->Stop(0); }
-
+      
         void Release() {
             if (_XAudioSourceVoice) { _XAudioSourceVoice->DestroyVoice(); _XAudioSourceVoice = nullptr; }
-            if (_Buffer.pAudioData) { delete[](BYTE*)_Buffer.pAudioData; _Buffer.pAudioData = nullptr; }
+            _Resource.reset();
         }
 
         void PlayRandomized(float baseVol = 1.0f, float basePitch = 1.0f, float variation = 0.05f) {
             static std::mt19937 gen(std::random_device{}());
             std::uniform_real_distribution<float> dist(-variation, variation);
             PlaySound(baseVol + dist(gen), basePitch + dist(gen), 0.0f);
-        }
-
-        void SetVolume(float volume) {
-            if (_XAudioSourceVoice) _XAudioSourceVoice->SetVolume(std::clamp(volume, 0.0f, 1.0f));
-        }
-
-        void SetPitch(float ratio) {
-            if (_XAudioSourceVoice) _XAudioSourceVoice->SetFrequencyRatio(std::clamp(ratio, 0.0001f, 10.0f));
         }
 
     private:
@@ -192,36 +191,8 @@ namespace Engine::Audio {
             _XAudioSourceVoice->SetOutputMatrix(nullptr, details.InputChannels, 2, matrix);
         }
 
-        HRESULT FindChunk(HANDLE File, DWORD fourcc, DWORD& ChunkSize, DWORD& ChunkDataPosition) {
-            if (INVALID_SET_FILE_POINTER == SetFilePointer(File, 0, NULL, FILE_BEGIN)) return HRESULT_FROM_WIN32(GetLastError());
-            DWORD ChunkType, ChunkDataSize, RIFFDataSize = 0, FileType, Offset = 0;
-            while (true) {
-                DWORD Read;
-                if (0 == ReadFile(File, &ChunkType, sizeof(DWORD), &Read, NULL)) return HRESULT_FROM_WIN32(GetLastError());
-                if (0 == ReadFile(File, &ChunkDataSize, sizeof(DWORD), &Read, NULL)) return HRESULT_FROM_WIN32(GetLastError());
-                Offset += sizeof(DWORD) * 2;
-                if (ChunkType == fourccRIFF) {
-                    RIFFDataSize = ChunkDataSize; ChunkDataSize = 4;
-                    ReadFile(File, &FileType, sizeof(DWORD), &Read, NULL);
-                }
-                else {
-                    SetFilePointer(File, ChunkDataSize, NULL, FILE_CURRENT);
-                }
-                if (ChunkType == fourcc) { ChunkSize = ChunkDataSize; ChunkDataPosition = Offset; return S_OK; }
-                Offset += ChunkDataSize;
-                if (RIFFDataSize > 0 && Offset >= RIFFDataSize) return S_FALSE;
-            }
-        }
-
-        HRESULT ReadChunkData(HANDLE File, void* buffer, DWORD bufferSize, DWORD bufferOffset) {
-            SetFilePointer(File, bufferOffset, NULL, FILE_BEGIN);
-            DWORD dwRead;
-            return ReadFile(File, buffer, bufferSize, &dwRead, NULL) ? S_OK : HRESULT_FROM_WIN32(GetLastError());
-        }
-
-        WAVEFORMATEXTENSIBLE _Wfx = { 0 };
-        XAUDIO2_BUFFER _Buffer = { 0 };
         bool _Playing = false;
+        std::shared_ptr<AudioBufferResource> _Resource;
         IXAudio2SourceVoice* _XAudioSourceVoice{ nullptr };
     };
 
@@ -233,6 +204,54 @@ namespace Engine::Audio {
         shot->Load(path);
         shot->PlaySound(volume, pitch, pan, false);
         pool.push_back(std::move(shot));
+    }
+
+    inline std::shared_ptr<AudioBufferResource> AudioEngine::GetOrCreateResource(const std::filesystem::path& path) {
+        auto& cache = Get()._resourceCache;
+        std::string key = path.string();
+
+        // not in cache
+        auto resource = std::make_shared<AudioBufferResource>();
+        HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+        if (file == INVALID_HANDLE_VALUE) return nullptr;
+
+        auto FindInFile = [&](DWORD fourcc, DWORD& size, DWORD& pos) {
+            SetFilePointer(file, 0, NULL, FILE_BEGIN);
+            DWORD type, dSize, riffSize = 0, fType, offset = 0;
+            while (ReadFile(file, &type, 4, &dSize, NULL) && ReadFile(file, &dSize, 4, &fType, NULL)) {
+                offset += 8;
+                if (type == fourccRIFF) {
+                    riffSize = dSize;
+                    dSize = 4;
+                    if (FAILED(ReadFile(file, &fType, 4, &type, NULL))) return false;
+                }
+                else {
+                    SetFilePointer(file, dSize, NULL, FILE_CURRENT);
+                }
+                if (type == fourcc) {
+                    size = dSize;
+                    pos = offset;
+                    return true;
+                }
+                offset += dSize;
+                if (riffSize > 0 && offset >= riffSize) break;
+            }
+        };
+
+        DWORD sz, pos;
+        if (FindInFile(fourccFMT, sz, pos)) {
+            SetFilePointer(file, pos, NULL, FILE_BEGIN);
+            if (FAILED(ReadFile(file, &resource->Format, sz, &sz, NULL))) return false; 
+        }
+        if (FindInFile(fourccDATA, sz, pos)) {
+            resource->Data.resize(sz);
+            SetFilePointer(file, pos, NULL, FILE_BEGIN);
+            if (FAILED(ReadFile(file, resource->Data.data(), sz, &sz, NULL))) return false;
+        }
+        CloseHandle(file);
+
+        cache[key] = resource;
+        return resource;
     }
 
 } // namespace Engine::Audio
