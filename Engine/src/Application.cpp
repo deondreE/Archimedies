@@ -429,7 +429,7 @@ namespace Engine {
 			}
 			_ImGuiLayer->EndMenuBar();
 			for (Layer* layer : _LayerStack) {
-				layer->OnImGuiRender(); // new virtual — see Layer.h update below
+				layer->OnImGuiRender(); 
 			}
 			_ImGuiLayer->EndDocking();
 			_ImGuiLayer->End();

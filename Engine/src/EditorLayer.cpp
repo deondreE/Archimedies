@@ -108,8 +108,11 @@ namespace Engine {
 		ImGuiDockNode* centralNode = ImGui::DockBuilderGetCentralNode(dockspaceID);
 
 		if (centralNode) {
-			ImGui::SetNextWindowPos(centralNode->Pos);
-			ImGui::SetNextWindowSize(centralNode->Size);
+			ImVec2 pos = centralNode->Pos;
+			ImVec2 size = centralNode->Size;
+		
+			ImGui::SetNextWindowPos(pos);
+			ImGui::SetNextWindowSize(size);
 
 			ImGuiWindowFlags flags =
 				ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
@@ -117,11 +120,11 @@ namespace Engine {
 				ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoDocking |
 				ImGuiWindowFlags_NoNavFocus; 
 
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 			ImGui::Begin("ViewportDropTarget", nullptr, flags);
+			ImGui::PopStyleVar();
 
-			ImGui::InvisibleButton("##viewportdrop", centralNode->Size);
-
-			// @Todo: Change the name each time. 
+			ImGui::InvisibleButton("##viewportdrop", ImGui::GetContentRegionAvail());
 
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload =

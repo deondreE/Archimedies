@@ -9,6 +9,7 @@ namespace Engine::Audio {
 
     // @Todo: 3d Audio is the only thing left i'm pretty sure. X3DAudio
     // @Todo: There is no UI around audio at all.
+    // @Todo: We want to support more then .WAV
 
     template<typename T>
     concept FloatingPoint = std::is_floating_point_v<T>;
@@ -49,6 +50,7 @@ namespace Engine::Audio {
 
     class AudioEngine {
     public:
+        // Max Number of voices playing concurrently.
         static constexpr size_t MAX_VOICES = 32;
 
         static void Init() { Get().instance_Init(); }
@@ -72,7 +74,10 @@ namespace Engine::Audio {
             return engine._XAudioMasterVoice;
         }
 
+        // Ensures that loading a file will only happen once.
         static std::shared_ptr<AudioBufferResource> GetOrCreateResource(const std::filesystem::path& path);
+
+        // A Sound that is loaded then unloaded from the active context. 
         static void PlayOneShot(const std::filesystem::path& path, float volume = 1.0f, float pitch = 1.0f, float pan = 0.0f);
 
         static void ClearCache() { Get()._resourceCache.clear(); }
@@ -81,7 +86,7 @@ namespace Engine::Audio {
         static void UpdateOneShotSoundPool() {
             std::erase_if(Get()._oneShotPool, [](const auto& sound) {
                 return !sound->IsPlaying();
-                });
+            });
         }
 
     private:
@@ -114,6 +119,7 @@ namespace Engine::Audio {
         std::vector<std::unique_ptr<Sound>> _oneShotPool;
     };
 
+    /* Sound is more like a SoundPlayer, but for now we will keep this naming.*/
     class Sound {
     public:
         Sound() = default;
@@ -132,12 +138,12 @@ namespace Engine::Audio {
                 XAUDIO2_VOICE_SENDS sendList = { 1, &sendDesc };
                 if (FAILED(AudioEngine::GetContext()->CreateSourceVoice(&_XAudioSourceVoice, (WAVEFORMATEX*)&_Resource->Format, 0, 2.0f, &g_VoiceCallback, &sendList)))
                 {
+                    LOG_ERROR("CreateSourceVoice: Failed");
                     return;
                 }
             }
 
             _Playing = true;
-            _Loop = loop;
 
             XAUDIO2_BUFFER xBuffer = { 0 };
             xBuffer.AudioBytes = static_cast<UINT32>(_Resource->Data.size());
@@ -148,6 +154,7 @@ namespace Engine::Audio {
 
             SetVolume(static_cast<float>(volume));
             SetPitch(static_cast<float>(pitch));
+            SetLooping(loop);
             SetPan(static_cast<float>(pan));
 
             if (SUCCEEDED(_XAudioSourceVoice->SubmitSourceBuffer(&xBuffer))) {
@@ -204,6 +211,8 @@ namespace Engine::Audio {
         [[nodiscard]] bool IsLooping() const { return _Loop; }
 
     private:
+        // @See: https://learn.microsoft.com/en-us/windows/win32/xaudio2/how-to--pan-a-sound
+        // This works not completly sure how.
         void ApplyPanMatrix() {
             if (!_XAudioSourceVoice) return;
             XAUDIO2_VOICE_DETAILS details;

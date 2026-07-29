@@ -52,9 +52,10 @@ namespace Engine {
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
+		//@Info: Make sure this never has NoInputs.
 		windowFlags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize
 			| ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus
-			| ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoInputs;
+			| ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar;
 
 		ImGui::Begin("DockSpaceHost", nullptr, windowFlags);
 
