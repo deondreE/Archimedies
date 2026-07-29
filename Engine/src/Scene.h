@@ -20,11 +20,11 @@ namespace Engine {
 			Engine::Audio::AudioEngine::UpdateOneShotSoundPool();
 		}
 
+		// This must be an implicit move CANNOT be anything else.
 		Entity& CreateEntity(const std::string& name = "Entity") {
-			Entity e;
+			Entity& e = _Entities.emplace_back();
 			e.Name = name;
-			_Entities.push_back(e);
-			return _Entities.back();
+			return e;
 		}
 
 		std::vector<Entity>& GetEntities() { return _Entities; }

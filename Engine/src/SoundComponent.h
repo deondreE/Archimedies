@@ -11,7 +11,7 @@ namespace Engine {
 		* Under the Hood is this an ECS "yes". You want to play a sound the user needs to know to add a Sound to the Entity.
 		* They don't need to be foced to understand that that is a component.
 		*/
-		SoundComponent(const std::string& name, std::filesystem::path& soundPath) 
+		SoundComponent(const std::string& name, const std::filesystem::path& soundPath) 
 			: Engine::Component::Component(name), _SoundPath(soundPath) 
 		{
 			_Sound = std::make_unique<Audio::Sound>();
@@ -47,7 +47,7 @@ namespace Engine {
 		float pan = 0.0f;
 		bool looping = false;
 	private:
-		std::filesystem::path& _SoundPath;
+		std::filesystem::path _SoundPath;
 		std::unique_ptr<Audio::Sound> _Sound = nullptr;
 	};
 }

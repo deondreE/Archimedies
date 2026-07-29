@@ -6,7 +6,7 @@ namespace Engine::Component
 	class Component 
 	{
 	public:
-		Component(std::string name = "Component") : _DebugName(name) {}
+		Component(std::string name = "Component") : _DebugName(name), _ID() {}
 		virtual ~Component() = default;
 
 		virtual void ComponentAwake()  {}

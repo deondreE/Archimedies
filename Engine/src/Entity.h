@@ -7,7 +7,7 @@
 namespace Engine {
    
     struct Entity {
-        UUID ID;
+        Util::UUID ID;
         std::string Name;
         Math::Vec3 Position = { 0.0f, 0.0f, 0.0f };
         Math::Vec3 Rotation = { 0.0f, 0.0f, 0.0f };
@@ -21,20 +21,24 @@ namespace Engine {
         template<typename T, typename... Args>
         T& AddComponent(Args&&... args) 
         {
-            static_assert(std::is_base_of_v<Component::Component>, "T must inherit from Component");
+            static_assert(std::is_base_of_v<Component::Component, T>, "T must inherit from Component");
+            
             auto newComponent = std::make_unique<T>(std::forward<Args>(args)...);
             T& ref = *newComponent;
-            Component.push_back(std::move(newComponent));
+
+            Components.push_back(std::move(newComponent));
             return ref;
         }
 
         template<typename T>
         T* GetComponent() {
-            static_assert(std::is_base_of_v<Component::Component>, "T must inherit from Component");
+            static_assert(std::is_base_of_v<Component::Component, T>, "T must inherit from Component");
+
             for (auto& comp : Components) {
                 T* target = dynamic_cast<T*>(comp.get());
                 if (target) return target;
             }
+
             return nullptr;
         }
 
