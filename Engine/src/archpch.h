@@ -45,6 +45,9 @@ using u8 = uint8_t;
 #include "Math/ArchMath.h"
 #include "Log.h"
 
+#include <vulkan/vulkan.h>
+#define VK_NULL VK_NULL_HANDLE
+
 // IMGUI
 #include "imgui.h"
 #include "backends/imgui_impl_win32.h"
