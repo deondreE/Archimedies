@@ -27,17 +27,34 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include <memory>
 #include <cmath>
 #include <sstream>
 #include <fstream>
-#include <zlib.h>
 #include <map>
 #include <cstdio>
 #include <cstdint>
 #include <unordered_map>
 #include <random>
+#include <set>
+#include <optional>
 
+#ifdef NDEBUG
+#define ARCH_ASSERT(condition) ((void)0)
+#else
+#include <stdio.h>
+#include <stdlib.h>
+
+#define ARCH_ASSERT(condition)                                                 \
+  do {                                                                         \
+    if (!(condition)) {                                                        \
+      fprintf(stderr, "Assertion failed: %s\nFile: %s, Line: %d\n", #condition, \
+              __FILE__, __LINE__);                                             \
+      __debugbreak();                                                        \
+    }                                                                          \
+  } while (0)
+#endif
+
+#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 #define VK_NULL VK_NULL_HANDLE
 
@@ -48,6 +65,8 @@ using u8 = uint8_t;
 #include "Math/ArchMath.h"
 #include "Log.h"
 
+#include "UUID.h"
+
 // IMGUI
 #include "imgui.h"
 #include "backends/imgui_impl_win32.h"
@@ -56,5 +75,4 @@ using u8 = uint8_t;
 #else
 #include "backends/imgui_impl_dx11.h"
 #endif
-
-#include "UUID.h"
+#include <zlib.h>

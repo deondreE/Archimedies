@@ -29,13 +29,14 @@ namespace Engine::Graphics
 		VkRenderer() = default;
 		~VkRenderer();
 
-		void Init(void* windowHandle);
+		// Needs HIsntance and HWND
+		void Init(void* windowHandle, void* instance);
 		void Shutdown();
 
 		void BeginFrame();
 		void EndFrame();
 	private:
-		void CreateInstance();
+		void CreateInstance(HINSTANCE instance, HWND window);
 		void SelectPhysicalDevice();
 		void CreateLogicalDevice();
 		void CreateSwapchain();
@@ -45,6 +46,11 @@ namespace Engine::Graphics
 		VkContext _Context;
 		VkCommandPool _CommandPool{ VK_NULL };
 		std::vector<VkCommandBuffer> _CommandBuffers;
-	
+		GxSyncObjects _SyncObjects;
+		VkSwapchainKHR _Swapchain{ VK_NULL };
+		std::vector<VkImage> _SwapchainImages;
+		VkExtent2D _SwapchainExtent;
+		VkFormat _SwapchainFormat;
+		u32 _CurrentImageIndex = 0;
 	};
 } // Namespace Engine::Graphics

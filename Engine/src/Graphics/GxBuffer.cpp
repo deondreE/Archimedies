@@ -107,7 +107,7 @@ namespace Engine::Graphics
 		VkContext& ctx = GetVkContext();
 		VkMemoryMapInfo mmInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_MAP_INFO,
-			.pNext = 0,
+			.pNext = nullptr,
 			.flags = 0,
 			.memory = Memory,
 			.offset = 0,
@@ -122,7 +122,7 @@ namespace Engine::Graphics
 		VkContext& ctx = GetVkContext();
 		VkMemoryUnmapInfo umInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_UNMAP_INFO,
-			.pNext = 0,
+			.pNext = nullptr,
 			.flags = 0,
 			.memory = Memory
 		};
