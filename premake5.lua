@@ -49,6 +49,8 @@ project "Engine"
     system "Windows"
     multiprocessorcompile "On"
     linkoptions { "/ignore:4006" }
+	
+	buildoptions { "/Zc:preprocessor" }
 
     pchheader "archpch.h"
     pchsource "Engine/src/archpch.cpp"
@@ -65,7 +67,8 @@ project "Engine"
         enablepch ("Off")	
     filter "files:Engine/src/Asset.cpp"
         enablepch ("Off")
-    filter {}
+	filter {}
+	
 
     includedirs 
     { 

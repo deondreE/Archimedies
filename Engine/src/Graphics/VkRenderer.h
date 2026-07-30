@@ -5,11 +5,11 @@ namespace Engine::Graphics
 {
 	struct VkContext 
 	{
-		VkInstance Instance = VK_NULL;
-		VkPhysicalDevice PhysicalDevice = VK_NULL;
-		VkDevice LogicalDevice = VK_NULL;
-		VkQueue	GraphicsQueue = VK_NULL;
-		VkSurfaceKHR Surface = VK_NULL;
+		VkInstance Instance{ VK_NULL };
+		VkPhysicalDevice PhysicalDevice{ VK_NULL };
+		VkDevice LogicalDevice{ VK_NULL };
+		VkQueue	GraphicsQueue{ VK_NULL };
+		VkSurfaceKHR Surface{ VK_NULL };
 	};
 
 	struct GxSyncObjects

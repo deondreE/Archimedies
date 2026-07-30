@@ -1,5 +1,5 @@
-#include "VkRenderer.h"
 #include "archpch.h"
+#include "VkRenderer.h"
 
 namespace Engine::Graphics {
 
@@ -27,7 +27,4 @@ namespace Engine::Graphics {
 			}
 		}
 	}
-
-	
-
 }

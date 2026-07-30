@@ -38,15 +38,15 @@
 #include <unordered_map>
 #include <random>
 
+#include <vulkan/vulkan.h>
+#define VK_NULL VK_NULL_HANDLE
+
 using u64 = uint64_t;
 using u32 = uint32_t;
 using u8 = uint8_t;
 
 #include "Math/ArchMath.h"
 #include "Log.h"
-
-#include <vulkan/vulkan.h>
-#define VK_NULL VK_NULL_HANDLE
 
 // IMGUI
 #include "imgui.h"
