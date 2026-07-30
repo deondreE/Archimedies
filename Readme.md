@@ -12,6 +12,9 @@ And Some debug window to be an Overlay, then renders on top, but recieves mouse 
 Keep the focus on the Viewport the "Game Screen" is the focus everything can be turned off or on.
 Opened panels are always Dockable to the main window, but they would not always have to take up space in the viewport.
 
+This project is built using C++23 ISO Standard, this is due to the effors making the language better in later versions. Things like reducing
+Undefined Behaviour. It will move to C++26 as soon as MSVC can support it directly, and it becomes more stable.
+
 Remember to `git clone --recursive`
 
 ## TODO:
