@@ -22,6 +22,9 @@ Remember to `git clone --recursive`
 - [ ] DirectX12 -- Started Work on This!
 - [x] Cora Integration
 - [x] Shader Library
+- [ ] Vulkan Port
+	- [ ] Start Vulkan Renderer
+	- [ ] Feature Parity with Directx
 - [ ] Animation
 - [ ] 2D Renderer
 - [ ] 2.5D Native Support
@@ -31,7 +34,7 @@ Remember to `git clone --recursive`
 - [ ] Audio UI
 	- [x] Audio File Icon
 	- [ ] Audio UI
-	- [ ] Audio Indicator int the editor.
+	- [ ] Audio Indicator in the editor.
 - [x] Content Browser
 - [x] Image Thumbnails
 - [ ] Gamepad Input
@@ -61,7 +64,7 @@ Remember to `git clone --recursive`
 - [ ] Real Time Collab [ Maybe ]()
 - [ ] Time Travel Debugging for the game process.
 	- [ ] ??
-- [ ] Native Visual Scripting
+- [ ] Native Visual Scripting { maybe }
 - [ ] Shadows 
 - [ ] Game UI
 - [ ] Game Code

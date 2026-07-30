@@ -20,12 +20,13 @@ namespace Engine::Graphics
 
 	struct GxPipelineConfig 
 	{
+		GxPipelineConfig();
 		VkPipelineLayout Layout{ VK_NULL };
 		VkRenderPass RenderPass{ VK_NULL };
 		u32 Subpass = 0;
 
-		std::filesystem::path& VertexShaderPath;
-		std::filesystem::path& FragmentShaderPath;
+		std::string VertexShaderPath;
+		std::string FragmentShaderPath;
 
 		std::vector<GxVertexBinding> VertexBindings;
 
@@ -33,8 +34,8 @@ namespace Engine::Graphics
 		VkCullModeFlags CullMode = VK_CULL_MODE_NONE; // @TODO: Change
 		VkFrontFace FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
-		bool DepthTestEnabled = false;
-		bool DepthWriteEnabled = false;
+		bool DepthTestEnable = false;
+		bool DepthWriteEnable = false;
 		VkCompareOp DepthCompareOp = VK_COMPARE_OP_LESS;
 
 		bool BlendEnable = false;
