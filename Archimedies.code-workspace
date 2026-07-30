@@ -1,0 +1,45 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "github.copilot.enable": {
+      "*": false
+    },
+    "editor.inlineSuggest.enabled": false,
+    "github.copilot.chat.search.enabled": false,
+    "workbench.colorCustomizations": {
+      "sideBar.border": "#00000000",
+      "activityBar.badgeBackground": "#00000000"
+    },
+    "dotnet.defaultSolution": "Archimedies.sln",
+    "C_Cpp.default.cppStandard": "c++23",
+    "C_Cpp.default.cStandard": "c17",
+    "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
+    "files.associations": {
+      "*.h": "cpp",
+      "*.cpp": "cpp",
+      "*.rc": "cpp",
+      "*.lua": "lua"
+    },
+    "editor.formatOnSave": true,
+    "editor.columnSelection": true,
+    "editor.ruler": [80, 120]
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.cpptools",
+      "ms-vscode.cpptools-extension-pack",
+      "ms-dotnettools.csdevkit",
+      "ms-dotnettools.csharp",
+      "tamasfe.even-better-toml",
+      "sumneko.lua"
+    ],
+    "unwantedRecommendations": [
+      "github.copilot",
+      "github.copilot-chat"
+    ]
+  }
+}

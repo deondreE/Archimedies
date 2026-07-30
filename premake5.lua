@@ -7,8 +7,10 @@ workspace "Archimedies"
 
     targetdir ("bin/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
     objdir ("bin-int/%{cfg.buildcfg}-%{cfg.platform}/%{prj.name}")
-local dotnet_path = "C:/Program Files/dotnet/packs/Microsoft.NETCore.App.Host.win-x64/10.0.10/runtimes/win-x64/native"
 
+-- Global paths
+local dotnet_path = "C:/Program Files/dotnet/packs/Microsoft.NETCore.App.Host.win-x64/10.0.10/runtimes/win-x64/native"
+local VK_SDK = "C:/VulkanSDK/1.4.350.0"
 
 project "zlib"
     location "Engine/Vendor/zlib"
@@ -35,8 +37,8 @@ project "zlib"
         runtime "Release"
         optimize "On"
 		
-	filter "kind:not StaticLib"
-		defines { 'SOLUTION_DIR=LR"(' .. _MAIN_SCRIPT_DIR .. ')"' }
+    filter "kind:not StaticLib"
+        defines { 'SOLUTION_DIR=LR"(' .. _MAIN_SCRIPT_DIR .. ')"' }
 
 project "Engine"
     location "Engine"
@@ -45,6 +47,7 @@ project "Engine"
     cppdialect "C++23"
     staticruntime "off"
     system "Windows"
+    multiprocessorcompile "On"
     linkoptions { "/ignore:4006" }
 
     pchheader "archpch.h"
@@ -60,7 +63,7 @@ project "Engine"
 
     filter "files:Engine/Vendor/**.cpp"
         enablepch ("Off")	
-	filter "files:Engine/src/Asset.cpp"
+    filter "files:Engine/src/Asset.cpp"
         enablepch ("Off")
     filter {}
 
@@ -72,14 +75,26 @@ project "Engine"
         "Engine/Vendor/imgui/backends",
         "Engine/Vendor/zlib",
         "Engine/Vendor/json/include",
-		"Engine/Vendor/gltf",
-		"Engine/Vendor/cora"
-	}
+        "Engine/Vendor/gltf",
+        "Engine/Vendor/cora/Engine.Native",
+        (VK_SDK .. "/Include")
+    }
 
+    libdirs { (VK_SDK .. "/Lib") }
     links 
     { 
-        "d3d11.lib", "d3d12.lib", "dxgi.lib", "d3dcompiler.lib",
-        "zlib", "xaudio2.lib", "xapobase.lib"
+        "d3d11.lib", 
+        "d3d12.lib", 
+        "dxgi.lib", 
+        "d3dcompiler.lib",
+        "zlib", 
+        "xaudio2.lib", 
+        "xapobase.lib", 
+        "xinput.lib",
+        "vulkan-1.lib",
+		"volk.lib",
+		-- "slang.lib", -- Eval
+		"Engine.Native"
     }
 
     filter "configurations:Debug"
@@ -90,7 +105,7 @@ project "Engine"
         defines { "NDEBUG" }
         runtime "Release"
         optimize "On"
-	filter "system:windows"
+    filter "system:windows"
         systemversion "latest" 
         defines { "WIN32_LEAN_AND_MEAN", "_WIN32_WINNT=0x0A00" }
 
@@ -101,24 +116,31 @@ project "Sandbox"
     cppdialect "C++23"
     system "Windows"
 
-    files { "Sandbox/src/**.h", "Sandbox/src/**.cpp",  "Engine/Vendor/cora/Engine.Native/**.h", 
-        "Engine/Vendor/cora/Engine.Native/**.cpp", "Engine/src/**.rc" }
+    files { 
+        "Sandbox/src/**.h", 
+        "Sandbox/src/**.cpp",
+        "Engine/src/**.rc" 
+    }
 
     includedirs 
     { 
         "Engine/src",
         "Engine/Vendor",
         "Engine/Vendor/imgui",
-        "Engine/Vendor/imgui/backends",
         "Engine/Vendor/zlib",
-        "Engine/Vendor/json/include",
-		"Engine/Vendor/gltf",
-		"Engine/Vendor/cora/Engine.Native",
-		dotnet_path
-	}
+		"Engine/Vendor/json/include",
+        "Engine/Vendor/cora/Engine.Native",
+        dotnet_path,
+		(VK_SDK .. "/Include")
+    }
 	
-	libdirs { dotnet_path }
-    links { "Engine", "nethost" }
+    libdirs { dotnet_path }
+    links { "Engine", "nethost", "Engine.Native" }
+
+    -- Required to run .NET hosting
+    postbuildcommands {
+        "{COPY} \"" .. dotnet_path .. "/nethost.dll\" \"%{cfg.targetdir}\""
+    }
 
     filter "configurations:Debug"
         defines { "DEBUG" }
@@ -135,44 +157,38 @@ externalproject "Engine.Managed"
     language "C#"
    
 project "Engine.Native"
-	kind "ConsoleApp"
-	language "C++"
-	cppdialect "C++23"
+    location "Engine/Vendor/cora/Engine.Native"
+    kind "StaticLib"
+    language "C++"
+    cppdialect "C++23"
+    system "Windows"
 	
-	files { 
-		"Engine/Vendor/cora/Engine.Native/**.h", 
-		"Engine/Vendor/cora/Engine.Native/**.cpp"
-	}
+    files { 
+        "Engine/Vendor/cora/Engine.Native/**.h", 
+        "Engine/Vendor/cora/Engine.Native/**.cpp"
+    }
 	
-	includedirs
-	{
-		"Engine/Vendor/cora/Engine.Native"
-	}
-	
-	dependson { "Cora.Managed" }
-	
-	local dotnet_path = "C:/Program Files/dotnet/packs/Microsoft.NETCore.App.Host.win-x64/10.0.10/runtimes/win-x64/native"
-
-		
-	includedirs { dotnet_path }
-    libdirs { dotnet_path }
-    links { "nethost" }
-
-	postbuildcommands {
-        -- Copy the entire Scripts folder
-        -- "{COPYDIR} \"%{wks.location}Engine\Vendor\cora\Engine.Native\Scripts\" \"%{cfg.targetdir}/Scripts\"",
-        
-        -- Copy the native hosting DLL from the SDK
-        -- "{COPY} \"" .. dotnet_path .. "/nethost.dll\" \"%{cfg.targetdir}\"",
-        
-        -- Copy the compiled C# DLL (Adjust the path to your .csproj output)
-        -- "{COPY} \"%{wks.location}/Engine/Vendor/cora/Engine.Managed/bin/%{cfg.buildcfg}/net10.0/Engine.Managed.dll\" \"%{cfg.targetdir}\""
+    includedirs { 
+        "Engine/Vendor/cora/Engine.Native",
+        dotnet_path 
     }
 
-   filter "configurations:Debug"
-      defines { "DEBUG" }
-      symbols "On"
+    libdirs { dotnet_path }
+    links { "nethost" }
+	
+    dependson { "Engine.Managed" }
+	
+    postbuildcommands {
+        "{COPY} \"$(TargetPath)\" \"%{wks.location}/bin/%{cfg.buildcfg}-%{cfg.platform}/Sandbox/\"",
+        "{COPY} \"" .. dotnet_path .. "/nethost.dll\" \"%{cfg.targetdir}\""
+    }
 
-   filter "configurations:Release"
-      defines { "NDEBUG" }
-      optimize "On"
+    filter "configurations:Debug"
+        defines { "DEBUG" }
+        runtime "Debug"
+        symbols "On"
+
+    filter "configurations:Release"
+        defines { "NDEBUG" }
+        runtime "Release"
+        optimize "On"

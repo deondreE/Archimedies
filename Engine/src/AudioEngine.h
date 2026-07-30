@@ -6,6 +6,7 @@
 #include <xaudio2.h>
 #include <x3daudio.h>
 #include <xapo.h>      
+#include <vulkan/vulkan.h>
 
 namespace Engine::Audio {
 
@@ -93,7 +94,7 @@ namespace Engine::Audio {
         static void UpdateOneShotSoundPool() {
             std::erase_if(Get()._oneShotPool, [](const auto& sound) {
                 return !sound->IsPlaying();
-            });
+                });
         }
 
     private:
