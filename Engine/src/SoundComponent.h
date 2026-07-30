@@ -9,7 +9,7 @@ namespace Engine {
 	public:
 		/*
 		* Under the Hood is this an ECS "yes". You want to play a sound the user needs to know to add a Sound to the Entity.
-		* They don't need to be foced to understand that that is a component.
+		* They don't need to be forced to understand that that is a component.
 		*/
 		SoundComponent(const std::string& name, const std::filesystem::path& soundPath) 
 			: Engine::Component::Component(name), _SoundPath(soundPath) 

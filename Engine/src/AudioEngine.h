@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <numbers>
 #include <xaudio2.h>
+#include <x3daudio.h>
 #include <xapo.h>      
 
 namespace Engine::Audio {
@@ -102,6 +103,12 @@ namespace Engine::Audio {
             if (FAILED(::CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return;
             if (FAILED(::XAudio2Create(&_XAudio, 0, XAUDIO2_DEFAULT_PROCESSOR))) return;
             if (FAILED(_XAudio->CreateMasteringVoice(&_XAudioMasterVoice))) return;
+
+            DWORD channelMask;
+            _XAudioMasterVoice->GetChannelMask(&channelMask);
+
+            X3DAudioInitialize(channelMask, X3DAUDIO_SPEED_OF_SOUND, _3DInstance);
+
             _XAudio->CreateSubmixVoice(&_SFXBus, 2, 44100);
 
             _XAudio->CreateSubmixVoice(&_MusicBus, 2, 44100);
@@ -121,6 +128,7 @@ namespace Engine::Audio {
         IXAudio2SubmixVoice* _SFXBus{ nullptr };
         IXAudio2SubmixVoice* _MusicBus{ nullptr };
         IXAudio2* _XAudio{ nullptr };
+        X3DAUDIO_HANDLE _3DInstance;
 
         std::unordered_map<std::string, std::shared_ptr<AudioBufferResource>> _resourceCache;
         std::vector<std::unique_ptr<Sound>> _oneShotPool;
