@@ -233,7 +233,6 @@ namespace Engine {
 			_Context->ClearDepthStencilView(_DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 			
 			OnRender();
-
 			
 			for (Layer* layer : _LayerStack) {
 				if (layer == _ImGuiLayer) continue;

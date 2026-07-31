@@ -2,6 +2,7 @@
 #include "IncludeEntry.h"
 #include "ScriptManager.h"
 #include "AudioEngine.h"
+#include "Input.h"
 
 class SandboxLayer : public Engine::Layer
 {
@@ -55,8 +56,16 @@ public:
     virtual void OnUpdate(Engine::Timestep ts) override
     {
         _Camera->OnUpdate(ts);
+		Engine::Input::InputUpdate(ts.GetSeconds());
         _ScriptManager.ScriptTick(ts.GetSeconds());
         _Scene->AudioEngineUpdate();
+
+		if (Engine::Input::IsControllerConnected(0)) {
+			const auto& c = Engine::Input::GetController(0);
+
+			if (Engine::Input::IsButtonDown(0, XINPUT_GAMEPAD_A))
+				std::cout << "Testing this great!" << std::endl;
+		}
     }
 
     virtual void OnRender() override
