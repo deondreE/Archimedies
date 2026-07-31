@@ -220,7 +220,7 @@ namespace Engine {
 			}
 
 			float alpha = Timestep::GetAlpha(accumulator, fixedTS);
-			// OnRender(alpha);
+			// OnRender(alpha); @Todo: make work
 
 			OnUpdate(ts);
 
@@ -253,7 +253,6 @@ namespace Engine {
 			}
 			_ImGuiLayer->EndDocking();
 			_ImGuiLayer->End();
-
 
 			_SwapChain->Present(1, 0); // VSync
 		}
@@ -323,7 +322,6 @@ namespace Engine {
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 
-	// @AI fix
 	void Application::OnWindowResize(WindowResizeEvent& e) {
 		uint32_t width = e.GetWidth();
 		uint32_t height = e.GetHeight();

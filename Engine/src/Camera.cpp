@@ -17,29 +17,6 @@ namespace Engine {
 		RecalculateProjection();
 	}
 
-	void Camera::OnUpdate(Timestep ts) {
-		// Flat (Y-ignoring) forward/right for WASD ground movement
-		Math::Vec3 forward = { sinf(_Yaw), 0.0f, cosf(_Yaw) };
-		Math::Vec3 right = { cosf(_Yaw), 0.0f, -sinf(_Yaw) };
-
-		float speed = _MoveSpeed * ts.GetSeconds();
-		
-		if (Input::IsKeyDown('W')) _Position = _Position + forward * speed;
-		if (Input::IsKeyDown('S')) _Position = _Position - forward * speed;
-		if (Input::IsKeyDown('D')) _Position = _Position + right * speed;
-		if (Input::IsKeyDown('A')) _Position = _Position - right * speed;
-		if (Input::IsKeyDown(VK_SPACE)) _Position.y += speed;
-		if (Input::IsKeyDown(VK_SHIFT)) _Position.y -= speed;
-
-		float turn = _LookSpeed * ts.GetSeconds();
-		if (Input::IsKeyDown(VK_LEFT)) _Yaw -= turn;
-		if (Input::IsKeyDown(VK_RIGHT)) _Yaw += turn;
-		if (Input::IsKeyDown(VK_UP)) _Yaw += turn;
-		if (Input::IsKeyDown(VK_DOWN)) _Yaw -= turn;
-
-		RecalculateView();
-	}
-
 	void Camera::RecalculateView() {
 		Math::Vec3 forward = {
 			cosf(_Pitch) * sinf(_Yaw),

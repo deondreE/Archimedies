@@ -4,6 +4,7 @@
 #include "AudioEngine.h"
 #include "InputActionMap.h"
 #include "Input.h"
+#include "FreeFlyCameraController.h"
 
 class SandboxLayer : public Engine::Layer
 {
@@ -52,7 +53,8 @@ public:
         }
 
         float aspect = (float)_Width / (float)_Height;
-        _Camera = std::make_unique<Engine::Camera>(45.0f, aspect, 0.1f, 1000.0f);
+        _Scene->PrimaryCamera.OnResize(_Width, _Height);
+        _CameraController = std::make_unique<Engine::FreeFlyCameraController>(_Scene->PrimaryCamera);
 
         Engine::SceneSerializer::Serialize(*_Scene, "Sandbox.scene");
         _SoundPlayer->PlaySound();
@@ -60,7 +62,7 @@ public:
 
     virtual void OnUpdate(Engine::Timestep ts) override
     {
-        _Camera->OnUpdate(ts);
+        _CameraController->OnUpdate(ts);
 		Engine::Input::InputUpdate(ts.GetSeconds());
         _ScriptManager.ScriptTick(ts.GetSeconds());
         _Scene->AudioEngineUpdate();
@@ -71,7 +73,7 @@ public:
 
     virtual void OnRender() override
     {
-        Engine::Renderer::BeginScene(_Camera->GetViewProjection());
+        Engine::Renderer::BeginScene(_Scene->PrimaryCamera.GetViewProjection());
         for (const auto &entity : _Scene->GetEntities())
         {
             Engine::Renderer::Submit(entity);
@@ -83,9 +85,10 @@ public:
     {
         Engine::EventDispatcher dispatcher(e);
         dispatcher.Dispatch<Engine::WindowResizeEvent>([this](Engine::WindowResizeEvent &re)
-                                                       {
-            _Camera->OnResize(re.GetWidth(), re.GetHeight());
-            return false; });
+        {
+            _Scene->PrimaryCamera.OnResize(re.GetWidth(), re.GetHeight());
+            return false; 
+        });
     }
 
     virtual void OnDetach() override
@@ -103,7 +106,7 @@ private:
     ID3D11Device *_Device;
     std::wstring _WorkingDir;
     int _Width, _Height;
-    std::unique_ptr<Engine::Camera> _Camera;
+    std::unique_ptr<Engine::FreeFlyCameraController> _CameraController;
     Cora::ScriptManager _ScriptManager;
     Engine::Audio::Sound *_SoundPlayer;
     Engine::InputActionMap actions;

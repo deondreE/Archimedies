@@ -68,7 +68,7 @@ namespace Engine {
 				std::string buttonName = comma != std::string::npos ? rest.substr(0, comma) : rest;
 				int key = 0;
 				if (comma != std::string::npos) {
-					try { key == std::stoi(rest.substr(comma + 1)); }
+					try { key = std::stoi(rest.substr(comma + 1)); }
 					catch (...) { key = 0;  }
 				}
 

@@ -7,11 +7,16 @@ namespace Engine {
 	public:
 		Camera(float fovDegrees, float aspectRatio, float nearClip, float farClip);
 
-		void OnUpdate(Timestep ts);
 		void OnResize(uint32_t width, uint32_t height);
 
-		const Math::Mat4& GetViewProjection() const { return _ViewProjection;  }
+		void SetPosition(const Math::Vec3& pos) { _Position = pos; RecalculateView(); }
 		const Math::Vec3& GetPosition() const { return _Position; }
+
+		void SetYawPitch(float yaw, float pitch) { _Yaw = yaw;  _Pitch = pitch; RecalculateView(); }
+		const Math::Mat4& GetViewProjection() const { return _ViewProjection;  }
+		float GetYaw() const { return _Yaw; }
+		float GetPitch() const { return _Pitch; }
+
 	private:
 		void RecalculateView();
 		void RecalculateProjection();
@@ -32,6 +37,7 @@ namespace Engine {
 		Math::Mat4 _View;
 		Math::Mat4 _Projection;
 		Math::Mat4 _ViewProjection;
+		bool _Static = false;
 	};
 }
 

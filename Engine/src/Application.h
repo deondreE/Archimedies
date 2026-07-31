@@ -41,9 +41,6 @@ namespace Engine {
 		const ApplicationSpecification& GetSpecification() const { return _Specification; }
 
 #if ARCH_RENDERER_D3D12
-		ID3D12Device* GetDevice() const { return _Device.Get(); }
-		ID3D12GraphicsCommandList* GetCommandList() const { return _CommandList.Get(); }
-		ID3D12CommandQueue* GetCommandQueue() const { return _CommandQueue.Get(); }
 #else
 		ID3D11Device* GetDevice() const { return _Device.Get(); }
 		ID3D11DeviceContext* GetContext() const { return _Context.Get(); }
@@ -53,7 +50,6 @@ namespace Engine {
 
 		bool InitWindow();
 		bool InitDx();
-		// void OnResize(uint32_t width, uint32_t height);
 
 		void OnWindowResize(WindowResizeEvent& e);
 
@@ -83,9 +79,7 @@ namespace Engine {
 		EditorMode _Mode;
 
 		bool CreateDepthStencil(uint32_t width, uint32_t height);
-		// void OnWindowResize(WindowResizeEvent& e);
 	};
 	
-	// To be defined in Sandbox
 	Application* CreateApplication();
 }
