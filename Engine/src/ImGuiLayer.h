@@ -12,7 +12,7 @@ namespace Engine {
 		virtual void OnDetach() override;
 		virtual void OnEvent(Event& e) override;
 
-		void BeginDocking();
+		void BeginDocking(EditorMode& mode);
 		void EndDocking();
 		void EndMenuBar();
 

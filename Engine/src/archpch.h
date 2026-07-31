@@ -76,3 +76,11 @@ using u8 = uint8_t;
 #include "backends/imgui_impl_dx11.h"
 #endif
 #include <zlib.h>
+
+enum class EditorMode
+{
+    Play,
+    Pause,
+    Physics,
+    Default
+};

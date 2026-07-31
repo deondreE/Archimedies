@@ -28,10 +28,6 @@ namespace Engine {
 	}
 
 	Application::~Application() {
-#if ARCH_RENDERER_D3D12
-		if (_Device) WaitForGpu();
-		if (_FenceEvent) CloseHandle(_FenceEvent);
-#endif
 	}
 
 	bool Application::InitWindow()
@@ -57,190 +53,10 @@ namespace Engine {
 		if (_HWnd) Input::Init(_HWnd);
 
 		return _HWnd != nullptr;
+
+		_Mode = EditorMode::Default;
 	}
 
-#if ARCH_RENDERER_DX12
-	// ------------------------------------------------------------------
-	// D3D12 path
-	// ------------------------------------------------------------------
-	bool Application::CreateDepthStencil(uint32_t width, uint32_t height) {
-		if (!_DSVHeap) {
-			D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-			dsvHeapDesc.NumDescriptors = 1;
-			dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-			dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			HRESULT hr = _Device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&_DSVHeap));
-			if (FAILED(hr)) {
-				LOG_ERROR("CreateDescriptorHeap (DSV) failed. HRESULT: 0x%08X", hr);
-				return false;
-			}
-		}
-
-		D3D12_HEAP_PROPERTIES heapProps = {};
-		heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-		D3D12_RESOURCE_DESC depthDesc = {};
-		depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		depthDesc.Width = width;
-		depthDesc.Height = height;
-		depthDesc.DepthOrArraySize = 1;
-		depthDesc.MipLevels = 1;
-		depthDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		depthDesc.SampleDesc.Count = 1;
-		depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-		D3D12_CLEAR_VALUE clearValue = {};
-		clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		clearValue.DepthStencil.Depth = 1.0f;
-		clearValue.DepthStencil.Stencil = 0;
-
-		_DepthStencilBuffer.Reset();
-		HRESULT hr = _Device->CreateCommittedResource(
-			&heapProps, D3D12_HEAP_FLAG_NONE, &depthDesc,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue,
-			IID_PPV_ARGS(&_DepthStencilBuffer));
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateCommittedResource (depth) failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-		_Device->CreateDepthStencilView(_DepthStencilBuffer.Get(), &dsvDesc, _DSVHeap->GetCPUDescriptorHandleForHeapStart());
-
-		return true;
-	}
-
-	void Application::WaitForGpu() {
-		const UINT64 fenceValueToWaitFor = ++_FenceValue;
-		_CommandQueue->Signal(_Fence.Get(), fenceValueToWaitFor);
-
-		if (_Fence->GetCompletedValue() < fenceValueToWaitFor) {
-			_Fence->SetEventOnCompletion(fenceValueToWaitFor, _FenceEvent);
-			WaitForSingleObject(_FenceEvent, INFINITE);
-		}
-	}
-
-	bool Application::InitDx()
-	{
-		UINT dxgiFactoryFlags = 0;
-#ifdef DEBUG
-		Microsoft::WRL::ComPtr<ID3D12Debug> debugController;
-		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
-			debugController->EnableDebugLayer();
-			dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-		}
-#endif
-
-		Microsoft::WRL::ComPtr<IDXGIFactory6> factory;
-		HRESULT hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory));
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateDXGIFactory2 failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-
-		Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
-		factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter));
-
-		hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_Device));
-		if (FAILED(hr)) {
-			LOG_ERROR("D3D12CreateDevice failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-
-		D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-		queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		hr = _Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&_CommandQueue));
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateCommandQueue failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-
-		DXGI_SWAP_CHAIN_DESC1 scd = {};
-		scd.Width = _Width;
-		scd.Height = _Height;
-		scd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		scd.SampleDesc.Count = 1;
-		scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		scd.BufferCount = FrameCount;
-		scd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-
-		Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain1;
-		hr = factory->CreateSwapChainForHwnd(_CommandQueue.Get(), _HWnd, &scd, nullptr, nullptr, &swapChain1);
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateSwapChainForHwnd failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-		swapChain1.As(&_SwapChain);
-		_FrameIndex = _SwapChain->GetCurrentBackBufferIndex();
-
-		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-		rtvHeapDesc.NumDescriptors = FrameCount;
-		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		hr = _Device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&_RTVHeap));
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateDescriptorHeap (RTV) failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-		_RTVDescriptorSize = _Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = _RTVHeap->GetCPUDescriptorHandleForHeapStart();
-		for (uint32_t i = 0; i < FrameCount; i++) {
-			hr = _SwapChain->GetBuffer(i, IID_PPV_ARGS(&_RenderTargets[i]));
-			if (FAILED(hr)) {
-				LOG_ERROR("SwapChain GetBuffer(%u) failed. HRESULT: 0x%08X", i, hr);
-				return false;
-			}
-			_Device->CreateRenderTargetView(_RenderTargets[i].Get(), nullptr, rtvHandle);
-			rtvHandle.ptr += _RTVDescriptorSize;
-		}
-
-		for (uint32_t i = 0; i < FrameCount; i++) {
-			hr = _Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_CommandAllocators[i]));
-			if (FAILED(hr)) {
-				LOG_ERROR("CreateCommandAllocator(%u) failed. HRESULT: 0x%08X", i, hr);
-				return false;
-			}
-		}
-
-		hr = _Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _CommandAllocators[_FrameIndex].Get(),
-			nullptr, IID_PPV_ARGS(&_CommandList));
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateCommandList failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-		_CommandList->Close(); // Run() expects the list closed at the top of each frame
-
-		if (!CreateDepthStencil((uint32_t)_Width, (uint32_t)_Height)) return false;
-
-		hr = _Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_Fence));
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateFence failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-		_FenceValue = 0;
-		_FenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-		if (!_FenceEvent) {
-			LOG_ERROR("CreateEvent (fence) failed. GetLastError: %lu", GetLastError());
-			return false;
-		}
-
-		// ImGui's DX12 backend needs a small SRV heap of its own (font texture + any user textures it manages).
-		D3D12_DESCRIPTOR_HEAP_DESC imguiHeapDesc = {};
-		imguiHeapDesc.NumDescriptors = 64;
-		imguiHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		imguiHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		hr = _Device->CreateDescriptorHeap(&imguiHeapDesc, IID_PPV_ARGS(&_ImGuiSrvHeap));
-		if (FAILED(hr)) {
-			LOG_ERROR("CreateDescriptorHeap (ImGui SRV) failed. HRESULT: 0x%08X", hr);
-			return false;
-		}
-
-		return true;
-	}
-
-#else
 	bool Application::CreateDepthStencil(uint32_t width, uint32_t height) {
 		D3D11_TEXTURE2D_DESC dsd = {};
 		dsd.Width = width;
@@ -332,7 +148,6 @@ namespace Engine {
 
 		return true;
 	}
-#endif
 
 	// Layers
 	void Application::PushLayer(Layer* layer) {
@@ -419,20 +234,23 @@ namespace Engine {
 			
 			OnRender();
 
+			
 			for (Layer* layer : _LayerStack) {
 				if (layer == _ImGuiLayer) continue;
 				layer->OnRender();
 			}
 
-			// ImGui frame wraps around here: Begin() before any ImGui:: calls, End() after all of them
 			_ImGuiLayer->Begin();
-			_ImGuiLayer->BeginDocking();
+			_ImGuiLayer->BeginDocking(_Mode);
 			for (Layer* layer : _LayerStack) {
 				layer->OnMenuBarRender();
 			}
 			_ImGuiLayer->EndMenuBar();
-			for (Layer* layer : _LayerStack) {
-				layer->OnImGuiRender(); 
+			// Editor UI Doesn't render in play mode.
+			if (_Mode == EditorMode::Default) {
+				for (Layer* layer : _LayerStack) {
+					layer->OnImGuiRender();
+				}
 			}
 			_ImGuiLayer->EndDocking();
 			_ImGuiLayer->End();

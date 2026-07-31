@@ -31,6 +31,9 @@ namespace Engine {
 		virtual void OnRender() {}
 		virtual void OnEvent(Event& e);
 		virtual void OnViewportResize(uint32_t width, uint32_t height) {}
+		
+		EditorMode GetEditorMode() const { return _Mode; }
+		void SetEditorMode(EditorMode mode) { _Mode = mode; }
 
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);
@@ -63,32 +66,6 @@ namespace Engine {
 		HWND _HWnd = nullptr;
 
 #if ARCH_RENDERER_D3D12
-		static constexpr uint32_t _FrameCount = 2;
-
-		Microsoft::WRL::ComPtr<ID3D12Device> _Device;
-		Microsoft::WRL::ComPtr<ID3D12CommandQueue> _CommandQueue;
-		Microsoft::WRL::ComPtr<IDXGISwapChain> _SwapChain;
-
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _RTVHeap;
-		uint32_t _RTVDescriptorSize = 0;
-		Microsoft::WRL::ComPtr<ID3D12Resource> _RenderTargets[_FrameCount];
-
-		// One allocator per in-flight frame so we never reset one the GPU is still reading from.
-		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> _CommandAllocator[_FrameCount];
-		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> _CommandList;
-
-		// Simple whole-GPU-wait sync (not a true 2-frame pipeline yet).
-		// Good enough to get D3D12 rendering correctly; revisit if you need the perf.
-		Microsoft::WRL::ComPtr<ID3D12Fence> _Fence;
-		HANDLE _FenceEvent = nullptr;
-		UINT64 _FenceValue = 0;
-		uint32_t _FrameIndex = 0;
-
-		// ImGui needs its own small SRV heap on D3D12 (font texture lives here).
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> _ImGuiSrvHeap;
-
-		void WaitForGpu();
-		bool CreateDepthStencil(uint32_t width, uint32_t height); // (re)creates DSV heap + resource
 #else
 		Microsoft::WRL::ComPtr<ID3D11Device> _Device;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> _Context;
@@ -103,6 +80,7 @@ namespace Engine {
 		ImGuiLayer* _ImGuiLayer = nullptr;
 	private:
 		static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		EditorMode _Mode;
 
 		bool CreateDepthStencil(uint32_t width, uint32_t height);
 		// void OnWindowResize(WindowResizeEvent& e);

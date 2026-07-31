@@ -40,7 +40,7 @@ namespace Engine {
 		}
 	}
 
-	void ImGuiLayer::BeginDocking() {
+	void ImGuiLayer::BeginDocking(EditorMode& mode) {
 		ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoDocking;
 
 		const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -69,6 +69,50 @@ namespace Engine {
 				if (ImGui::MenuItem("Exit")) PostQuitMessage(0);
 				ImGui::EndMenu();
 			}
+
+			float toolBarButtonSize = ImGui::GetFrameHeight() - 4.0f;
+			int numButtons = 2; // Play and Stop
+			float totalToolbarWidth = (toolBarButtonSize * numButtons) + ImGui::GetStyle().ItemSpacing.x;
+			
+			float centerX = (ImGui::GetWindowWidth() - totalToolbarWidth) * 0.5f;
+
+			ImGui::SetCursorPosX(centerX);
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+
+			bool isPlaying = (mode == EditorMode::Play); 
+
+			if (isPlaying) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.35f, 0.58f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.45f, 0.70f, 1.0f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+			}
+
+			if (ImGui::Button(" > ", ImVec2(toolBarButtonSize, toolBarButtonSize))) {
+				mode = isPlaying ? EditorMode::Default : EditorMode::Play;
+			}
+			ImGui::PopStyleColor(isPlaying ? 2 : 1);
+
+			ImGui::SameLine();
+
+			bool isDefault = (mode == EditorMode::Default);
+			if (isDefault) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+			}
+
+			if (ImGui::Button(" # ", ImVec2(toolBarButtonSize, toolBarButtonSize))) {
+				mode = EditorMode::Default;
+			}
+			ImGui::PopStyleColor();
+
+			ImGui::SetCursorPosX(100);
+
+			ImGui::PopStyleVar(2);
 		}
 	}
 
