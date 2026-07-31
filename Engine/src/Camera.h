@@ -11,11 +11,20 @@ namespace Engine {
 
 		void SetPosition(const Math::Vec3& pos) { _Position = pos; RecalculateView(); }
 		const Math::Vec3& GetPosition() const { return _Position; }
+		Math::Vec3& GetPosition() { return _Position; }
 
 		void SetYawPitch(float yaw, float pitch) { _Yaw = yaw;  _Pitch = pitch; RecalculateView(); }
 		const Math::Mat4& GetViewProjection() const { return _ViewProjection;  }
+		
+		void SetYaw(float yaw) { _Yaw = yaw;     RecalculateView(); }
+		void SetPitch(float pitch) { _Pitch = pitch; RecalculateView(); }
 		float GetYaw() const { return _Yaw; }
 		float GetPitch() const { return _Pitch; }
+	
+		void SetNearPlane(float nearClip) { _NearClip = nearClip; RecalculateProjection(); }
+		void SetFarPlane(float farClip) { _FarClip = farClip;   RecalculateProjection(); }
+		float GetNearPlane() const { return _NearClip; }
+		float GetFarPlane() const { return _FarClip; }
 
 	private:
 		void RecalculateView();

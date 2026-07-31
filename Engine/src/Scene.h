@@ -34,8 +34,6 @@ namespace Engine {
 
 		Camera PrimaryCamera;
 	private:
-		std::vector<Entity> _Entities;
-		// Primary game camera.
-		
+		std::vector<Entity> _Entities;		
 	};
 }

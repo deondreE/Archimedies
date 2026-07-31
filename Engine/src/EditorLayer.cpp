@@ -44,32 +44,65 @@ namespace Engine {
 
 			ImGui::Begin("Audio");
 				float masterVol = Audio::AudioEngine::GetBusVolume(Audio::BusType::Master);
-				ImGui::DragFloat("Master Volume", &masterVol, 0.1f, 0.0, 1.0f);
-				Audio::AudioEngine::SetBusVolume(Audio::BusType::Master, masterVol);
-
 				float sfxVol = Audio::AudioEngine::GetBusVolume(Audio::BusType::SFX);
-				ImGui::DragFloat("SFX Volume", &sfxVol, 0.1f, 0.0, 1.0f);
-				Audio::AudioEngine::SetBusVolume(Audio::BusType::SFX, sfxVol);
-
 				float musicVolume = Audio::AudioEngine::GetBusVolume(Audio::BusType::Music);
-				ImGui::DragFloat("Music Volume", &musicVolume, 0.1f, 0.0, 1.0f);
-				Audio::AudioEngine::SetBusVolume(Audio::BusType::Music, musicVolume);
 
+				if (Knob("Master", &masterVol, 0.0f, 1.0f))
+					Audio::AudioEngine::SetBusVolume(Audio::BusType::Master, masterVol);
+
+				if (Knob("SFX", &sfxVol, 0.0f, 1.0f))
+					Audio::AudioEngine::SetBusVolume(Audio::BusType::SFX, sfxVol);
+
+				if (Knob("Music", &musicVolume, 0.0f, 1.0f))
+					Audio::AudioEngine::SetBusVolume(Audio::BusType::Music, musicVolume);
 			ImGui::End();
 		}
 
 		if (_ShowInspector) {
 			// Inspector panel for the selected entity
 			ImGui::Begin("Inspector");
+			// Scene Camera
+			ImGui::Begin("Camera");
+			Math::Vec3 pos = _Scene->PrimaryCamera.GetPosition();
+			if (DragFloat3Colored("Position", &pos.x, 0.1f, -1000.0f, 1000.0f))
+				_Scene->PrimaryCamera.SetPosition(pos);
+
+			float nPlane = _Scene->PrimaryCamera.GetNearPlane();
+			float fPlane = _Scene->PrimaryCamera.GetFarPlane();
+
+			if (ImGui::DragFloat("Near Plane", &nPlane, 0.01f, 0.001f, fPlane - 0.01f))
+				_Scene->PrimaryCamera.SetNearPlane(nPlane);
+
+			if (ImGui::DragFloat("Far Plane", &fPlane, 1.0f, nPlane + 0.01f, 10000.0f))
+				_Scene->PrimaryCamera.SetFarPlane(fPlane);
+
+			float pitch = _Scene->PrimaryCamera.GetPitch();
+			float yaw = _Scene->PrimaryCamera.GetYaw();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(12.0f, 4.0f));
+			ImGui::PushItemWidth(100.0f);
+
+			if (ImGui::DragFloat("Yaw", &yaw, 0.1f, -180.0f, 180.0f))
+				_Scene->PrimaryCamera.SetYaw(yaw);
+
+			ImGui::SameLine();
+			
+			if (ImGui::DragFloat("Pitch", &pitch, 0.1f, 0, 100.0f))
+				_Scene->PrimaryCamera.SetPitch(pitch);
+		
+			ImGui::PopItemWidth();
+			ImGui::PopStyleVar();
+
+			ImGui::End();
 			if (_SelectedIndex >= 0 && _SelectedIndex < (int)entities.size()) {
 				Entity& e = entities[_SelectedIndex];
 
 				ImGui::Text("Name: %s", e.Name.c_str());
 				ImGui::Separator();
 
-				ImGui::DragFloat3("Position", &e.Position.x, 0.1f, 0, 100.0f);
-				ImGui::DragFloat3("Scale", &e.Scale.x, 0.1f, 0, 100.0f);
-				ImGui::DragFloat3("Rotation", &e.Rotation.x, 0.1f); // @Todo: Make this render as Deg 0->360
+				DragFloat3Colored("Position", &e.Position.x, 0.1f, 0, 100.0f);
+				DragFloat3Colored("Scale", &e.Scale.x, 0.1f, 0, 100.0f);
+				DragRotationDeg3("Rotation", &e.Rotation.x);
 
 				ImGui::Separator();
 
@@ -113,7 +146,7 @@ namespace Engine {
 		if (_ShowLighting) {
 			ImGui::Begin("Lighting");
 			auto& light = Renderer::GetLight();
-			ImGui::DragFloat3("Direction", &light.Direction.x, 0.01f, -100.0f, 100.0f);
+			DragFloat3Colored("Direction", &light.Direction.x, 0.01f, -100.0f, 100.0f);
 			ImGui::DragFloat("Intensity", &light.Itensity, 0.01f, 0.0f, 5.0f);
 			ImGui::DragFloat("Ambient", &light.AmbientStrength, 0.01f, 0.0f, 1.0f);
 			ImGui::ColorEdit3("Color", light.Color);
@@ -196,5 +229,116 @@ namespace Engine {
 
 			ImGui::End();
 		}
+	}
+
+	bool EditorLayer::DragFloat3Colored(const char* label, float* v, float v_speed,
+		float v_min, float v_max, const char* format)
+	{
+		bool changed = false;
+		ImGui::PushID(label);
+		ImGui::BeginGroup();
+
+		static const char* axis[3] = { "X", "Y", "Z" };
+		static const ImVec4 axisColor[3] = {
+			ImVec4(0.90f, 0.20f, 0.20f, 1.0f),
+			ImVec4(0.20f, 0.80f, 0.20f, 1.0f),
+			ImVec4(0.20f, 0.45f, 0.95f, 1.0f)
+		};
+
+		float spacing = ImGui::GetStyle().ItemInnerSpacing.x;
+		float labelW = ImGui::CalcTextSize("X").x + spacing;
+		float boxWitdth = (ImGui::CalcItemWidth() - spacing * 2 - labelW * 3) / 3.0f;
+
+		for (int i = 0; i < 3; i++)
+		{
+			if (i > 0) ImGui::SameLine(0, spacing);
+			ImGui::TextColored(axisColor[i], "%s", axis[i]);
+			ImGui::SameLine(0, spacing * 0.5f);
+			ImGui::PushID(i);
+			ImGui::SetNextItemWidth(boxWitdth);
+			if (ImGui::DragFloat("##v", &v[i], v_speed, v_min, v_max, format))
+				changed = true;
+			ImGui::PopID();
+		}
+
+		ImGui::SameLine(0, spacing);
+		ImGui::TextUnformatted(label);
+
+		ImGui::EndGroup();
+		ImGui::PopID();
+		return changed;
+	}
+
+	bool EditorLayer::DragRotationDeg3(const char* label, float* rotRadians, float v_speed)
+	{
+		float deg[3] = {
+			rotRadians[0] * (180.0f / Math::PI),
+			rotRadians[1] * (180.0f / Math::PI),
+			rotRadians[2] * (180.0f / Math::PI)
+		};
+
+		bool changed = DragFloat3Colored(label, deg, v_speed, 0.0f, 360.0f);
+
+		if (changed)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				deg[i] = fmodf(deg[i], 360.0f);
+				if (deg[i] < 0.0f) deg[i] += 360.0f;
+				rotRadians[i] = deg[i] * (Math::PI / 180.0f);
+			}
+		}
+		return changed;
+	}
+
+	bool EditorLayer::Knob(const char* label, float* value, float v_min, float v_max, float radius) {
+		ImGuiIO& io = ImGui::GetIO();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		float diameter = radius * 2.0f;
+		ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+		ImVec2 center = ImVec2(cursorPos.x + radius, cursorPos.y + radius);
+
+		ImGui::PushID(label);
+		ImGui::InvisibleButton("##knob", ImVec2(diameter, diameter));
+		bool changed = false;
+
+		bool isActive = ImGui::IsItemActive();
+		bool isHovered = ImGui::IsItemHovered();
+		
+		if (isActive && io.MouseDelta.y != 0.0f)
+		{
+			float t = (*value - v_min) / (v_max - v_min);
+			t = ImClamp(t - io.MouseDelta.y * 0.005f, 0.0f, 1.0f);
+			*value = v_min + t * (v_max - v_min);
+			changed = true;
+		}
+		
+		float t = (*value - v_min) / (v_max - v_min);
+		const float angleMax = Math::PI * 0.75f;
+		const float angleMin = Math::PI * 2.25f;
+		float angle = angleMin + t * (angleMax - angleMin);
+
+		ImU32 colBase = ImGui::GetColorU32(isActive ? ImGuiCol_FrameBgActive :
+			(isHovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg));
+		ImU32 colBorder = ImGui::GetColorU32(ImGuiCol_Border);
+		ImU32 colIndicator = ImGui::GetColorU32(ImGuiCol_SliderGrabActive);
+
+		drawList->AddCircleFilled(center, radius, colBase, 32);
+		drawList->AddCircle(center, radius, colBorder, 32, 1.5f);
+
+		ImVec2 indicatorEnd(
+			center.x + cosf(angle) * radius * 0.8f,
+			center.y + sinf(angle) * radius * 0.8f
+		);
+		drawList->AddLine(center, indicatorEnd, colIndicator, 2.5f);
+
+		if (isHovered || isActive)
+			ImGui::SetTooltip("%.3f", *value);
+		
+		ImGui::TextUnformatted(label);
+		ImGui::PopID();
+
+		return changed;
 	}
 }
