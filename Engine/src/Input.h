@@ -12,6 +12,7 @@ namespace Engine {
 
 		struct ControllerState {
 			XINPUT_STATE state{};
+			WORD prevButtons = 0;
 			bool connected = false;
 			bool wasConnected = false; // previousframe
 
@@ -44,12 +45,13 @@ namespace Engine {
 			bool pollDisconnected = false; 
 			if (s_DisconnectedTimer >= kDisconnectedPollInterval) {
 				s_DisconnectedTimer = 0.0f;
-				pollDisconnected = false;
+				pollDisconnected = true;
 			}
 
 			for (DWORD i = 0; i < kMaxControllers; ++i) {
 				auto& c = s_Controllers[i];
 				c.wasConnected = c.connected;
+				c.prevButtons = c.state.Gamepad.wButtons;
 
 				// Skip disconnected slots most frames to avoid slow XInput calls.
 				if (!c.connected && !pollDisconnected)
@@ -68,8 +70,8 @@ namespace Engine {
 
 				if (c.connected && !c.wasConnected)
 					LOG_INFO("Controller {} connected", i);
-				else if (c.connected && c.wasConnected)
-					LOG_INFO("Controller {} disconnected", i);
+				else if (!c.connected && c.wasConnected)
+					LOG_INFO("Controller {} disconnected", i); 
 			}
 		}
 
@@ -86,6 +88,36 @@ namespace Engine {
 			return (s_Controllers[index].state.Gamepad.wButtons & button) != 0;
 		}
 
+		// True only on the frame the button transitions up -> down
+		static bool IsButtonPressed(DWORD index, WORD button) {
+			if (!IsControllerConnected(index)) return false;
+			const auto& c = s_Controllers[index];
+			bool now = (c.state.Gamepad.wButtons & button) != 0;
+			bool before = (c.prevButtons & button) != 0;
+			return now && !before;
+		}
+
+		// True only on the frame the button transitions down -> up
+		static bool IsButtonReleased(DWORD index, WORD button) {
+			if (!IsControllerConnected(index)) return false;
+			const auto& c = s_Controllers[index];
+			bool now = (c.state.Gamepad.wButtons & button) != 0;
+			bool before = (c.prevButtons & button) != 0;
+			return !now && before;
+		}
+
+		// --- Name <-> button lookup, used by InputActionMap for (de)serialization ---
+		static WORD ButtonFromName(const std::string& name) {
+			auto it = s_ButtonNames.find(name);
+			return it != s_ButtonNames.end() ? it->second : 0;
+		}
+
+		static std::string NameFromButton(WORD button) {
+			for (auto& [name, val] : s_ButtonNames)
+				if (val == button) return name;
+			return "None";
+		}
+
 	private:
 		static void ComputeAnalog(ControllerState& c) {
 			const auto& gp = c.state.Gamepad;
@@ -94,9 +126,9 @@ namespace Engine {
 			c.leftY = ApplyStickDeadzone(gp.sThumbLY,
 										 XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
 			c.rightX = ApplyStickDeadzone(gp.sThumbRX,
-										  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+										  XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 			c.rightY = ApplyStickDeadzone(gp.sThumbRY,
-										  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+										  XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE);
 
 			c.leftTrigger = ApplyTriggerDeadzone(gp.bLeftTrigger);
 			c.rightTrigger = ApplyTriggerDeadzone(gp.bRightTrigger);
@@ -126,5 +158,22 @@ namespace Engine {
 		static HWND s_Hwnd;
 		static std::array<ControllerState, kMaxControllers> s_Controllers;
 		static float s_DisconnectedTimer;
+
+		static inline const std::unordered_map<std::string, WORD> s_ButtonNames = {
+			{ "DPadUp",       XINPUT_GAMEPAD_DPAD_UP },
+			{ "DPadDown",     XINPUT_GAMEPAD_DPAD_DOWN },
+			{ "DPadLeft",     XINPUT_GAMEPAD_DPAD_LEFT },
+			{ "DPadRight",    XINPUT_GAMEPAD_DPAD_RIGHT },
+			{ "Start",        XINPUT_GAMEPAD_START },
+			{ "Back",         XINPUT_GAMEPAD_BACK },
+			{ "LeftThumb",    XINPUT_GAMEPAD_LEFT_THUMB },
+			{ "RightThumb",   XINPUT_GAMEPAD_RIGHT_THUMB },
+			{ "LeftShoulder", XINPUT_GAMEPAD_LEFT_SHOULDER },
+			{ "RightShoulder",XINPUT_GAMEPAD_RIGHT_SHOULDER },
+			{ "A",            XINPUT_GAMEPAD_A },
+			{ "B",            XINPUT_GAMEPAD_B },
+			{ "X",            XINPUT_GAMEPAD_X },
+			{ "Y",            XINPUT_GAMEPAD_Y },
+		};
 	};
 }
