@@ -2,6 +2,7 @@
 #include "IncludeEntry.h"
 #include "ScriptManager.h"
 #include "AudioEngine.h"
+#include "InputActionMap.h"
 #include "Input.h"
 
 class SandboxLayer : public Engine::Layer
@@ -23,6 +24,10 @@ public:
         _SoundPlayer = new Engine::Audio::Sound();
         auto soundPath = root / "Sounds/Test.wav";
         _SoundPlayer->Load(soundPath);
+
+        actions.Bind("Jump", XINPUT_GAMEPAD_A, VK_SPACE);
+        actions.Bind("FIRE", XINPUT_GAMEPAD_RIGHT_SHOULDER);
+        actions.Save("Bindings.aactions");
     }
 
     virtual void OnAttach() override
@@ -60,12 +65,8 @@ public:
         _ScriptManager.ScriptTick(ts.GetSeconds());
         _Scene->AudioEngineUpdate();
 
-		if (Engine::Input::IsControllerConnected(0)) {
-			const auto& c = Engine::Input::GetController(0);
-
-			if (Engine::Input::IsButtonDown(0, XINPUT_GAMEPAD_A))
-				std::cout << "Testing this great!" << std::endl;
-		}
+        if (actions.IsActionPressed("Jump"))
+            std::cout << "Test";
     }
 
     virtual void OnRender() override
@@ -105,4 +106,5 @@ private:
     std::unique_ptr<Engine::Camera> _Camera;
     Cora::ScriptManager _ScriptManager;
     Engine::Audio::Sound *_SoundPlayer;
+    Engine::InputActionMap actions;
 };

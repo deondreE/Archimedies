@@ -12,3 +12,4 @@ bin
 *.pdb
 *.json
 build
+*.aactions
