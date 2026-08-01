@@ -2,6 +2,7 @@
 #include "Layer.h"
 #include "ContentBrowser.h"
 #include "Scene.h"
+#include "EditorGizmo.h"
 
 namespace Engine {
 
@@ -27,5 +28,7 @@ namespace Engine {
 		bool _ShowInspector = true;
 		bool _ShowLighting = true; 
 		bool _ShowStats = false; // @TODO: Show engine stats here. 
+		Engine::EditorGizmo _Gizmo;
+		Engine::GizmoMode _GizmoMode = Engine::GizmoMode::Translate;
 	};
 }

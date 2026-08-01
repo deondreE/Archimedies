@@ -181,7 +181,7 @@ namespace Engine {
 			ImGui::Begin("ViewportDropTarget", nullptr, flags);
 			ImGui::PopStyleVar();
 
-			ImGui::InvisibleButton("##viewportdrop", ImGui::GetContentRegionAvail());
+			ImGui::Dummy(ImGui::GetContentRegionAvail());
 
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload =
@@ -225,6 +225,50 @@ namespace Engine {
 					t.Position = { 0, 0, 0 };
 				}
 				ImGui::EndDragDropTarget();
+			}
+
+		
+			if (ImGui::IsKeyPressed(ImGuiKey_W)) _GizmoMode = Engine::GizmoMode::Translate;
+			if (ImGui::IsKeyPressed(ImGuiKey_E)) _GizmoMode = Engine::GizmoMode::Rotate;
+			if (ImGui::IsKeyPressed(ImGuiKey_R)) _GizmoMode = Engine::GizmoMode::Scale;
+
+			bool gizmoConsumedClick = false;
+
+			auto worldToScreen = [&](const Math::Vec3& world, ImVec2& outScreen) -> bool {
+				const Math::Mat4& viewProj = _Scene->PrimaryCamera.GetViewProjection();
+				Math::Vec4 clip = viewProj.Transform(Math::Vec4(world, 1.0f));
+				if (clip.w <= 0.0001f) return false;
+				float ndcX = clip.x / clip.w;
+				float ndcY = clip.y / clip.w;
+				outScreen.x = pos.x + (ndcX * 0.5f + 0.5f) * size.x;
+				outScreen.y = pos.y + (1.0f - (ndcY * 0.5f + 0.5f)) * size.y;
+				return true;
+			};
+
+			if (_SelectedIndex >= 0 && _SelectedIndex < static_cast<int>(entities.size())) {
+				Entity& e = entities[_SelectedIndex];
+
+				_Gizmo.Manipulate(worldToScreen, e.Position, e.Rotation, e.Scale, _GizmoMode); 
+				gizmoConsumedClick = _Gizmo.IsUsing();
+			}
+
+			if (!gizmoConsumedClick && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+				ImVec2 mouse = ImGui::GetIO().MousePos;
+				int closest = -1;
+				float bestDistSq = 20.0f * 20.0f; // pixel radius threshold, squared
+
+				for (int i = 0; i < (int)entities.size(); i++) {
+					ImVec2 screenPos;
+					if (!worldToScreen(entities[i].Position, screenPos)) continue;
+
+					float dx = screenPos.x - mouse.x;
+					float dy = screenPos.y - mouse.y;
+					float distSq = dx * dx + dy * dy;
+
+					if (distSq < bestDistSq) { bestDistSq = distSq; closest = i; }
+				}
+
+				_SelectedIndex = closest;
 			}
 
 			ImGui::End();

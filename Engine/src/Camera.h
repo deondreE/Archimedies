@@ -15,7 +15,10 @@ namespace Engine {
 
 		void SetYawPitch(float yaw, float pitch) { _Yaw = yaw;  _Pitch = pitch; RecalculateView(); }
 		const Math::Mat4& GetViewProjection() const { return _ViewProjection;  }
-		
+
+		const Math::Mat4& GetView() const { return _View; }
+		const Math::Mat4& GetProjection() const { return _Projection; }
+
 		void SetYaw(float yaw) { _Yaw = yaw;     RecalculateView(); }
 		void SetPitch(float pitch) { _Pitch = pitch; RecalculateView(); }
 		float GetYaw() const { return _Yaw; }
