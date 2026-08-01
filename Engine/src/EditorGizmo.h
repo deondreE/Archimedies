@@ -31,6 +31,7 @@ namespace Engine {
 		float _AxisScreenLen[3];
 		ImVec2 _OriginScreen;
 		float _DragStartAngle = 0.0f;
+		float _RotateArcStart = 0.0f;
 		Math::Vec3 _DragStartVec{};
 
 		bool ManipulateTranslate(const WorldScreenFn& w2s, Math::Vec3& position, float size);

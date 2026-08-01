@@ -8,19 +8,69 @@ namespace {
 	float ScreenLength(const ImVec2& a) { return sqrtf(a.x * a.x + a.y * a.y); }
 
 	ImVec2 ScreenSub(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x - b.x, a.y - b.y); }
+	ImVec2 ScreenAdd(const ImVec2& a, const ImVec2& b) { return ImVec2(a.x + b.x, a.y + b.y); }
+	ImVec2 ScreenMul(const ImVec2& a, float s) { return ImVec2(a.x * s, a.y * s); }
 
+	// Perpendicular (rotate 90 degrees) - used for arrowhead wings and box corners.
+	ImVec2 ScreenPerp(const ImVec2& a) { return ImVec2(-a.y, a.x); }
 	ImVec2 ScreenNormalize(const ImVec2& a) {
 		float l = ScreenLength(a);
 		return l > 0.001f ? ImVec2(a.x / l, a.y / l) : ImVec2(0.0f, 0.0f);
 	}
 
-	ImU32 AxisColor(int axis, bool highlighted) {
-		static const ImU32 cols[3] = {
-			IM_COL32(230, 50, 50, 255),
-			IM_COL32(50, 200, 50, 255),
-			IM_COL32(50, 115, 240, 255)
+	ImU32 AxisBaseColor(int axis) {
+		static const ImU32 AxisColor[3] = {
+			IM_COL32(226, 61, 61, 255),
+			IM_COL32(70, 200, 90, 255),
+			IM_COL32(65, 130, 240, 255)
 		};
-		return highlighted ? IM_COL32(255, 255, 255, 255) : cols[axis];
+		return AxisColor[axis];
+	}
+
+	ImU32 AxisLineColor(int axis, bool hovered, bool active) {
+		if (active)  return IM_COL32(255, 235, 120, 255); // consistent "selected" gold across all axes
+		if (hovered) {
+			ImU32 base = AxisBaseColor(axis);
+			// Lighten the base color rather than flashing pure white.
+			int r = std::min(255, (int)((base >> IM_COL32_R_SHIFT & 0xFF) + 70));
+			int g = std::min(255, (int)((base >> IM_COL32_G_SHIFT & 0xFF) + 70));
+			int b = std::min(255, (int)((base >> IM_COL32_B_SHIFT & 0xFF) + 70));
+			return IM_COL32(r, g, b, 255);
+		}
+		return AxisBaseColor(axis);
+	}
+
+	constexpr ImU32 kOutlineColor = IM_COL32(20, 20, 20, 160);
+	constexpr ImU32 kCenterIdle = IM_COL32(230, 230, 230, 255);
+	constexpr ImU32 kCenterHover = IM_COL32(255, 235, 120, 255);
+
+	void DrawOutlinedLine(ImDrawList* dl, const ImVec2& a, const ImVec2& b, ImU32 col, float thickness) {
+		dl->AddLine(a, b, kOutlineColor, thickness + 2.5f);
+		dl->AddLine(a, b, col, thickness);
+	}
+
+	void DrawOutlinedCircleFilled(ImDrawList* dl, const ImVec2& center, float radius, ImU32 col) {
+		dl->AddCircleFilled(center, radius + 1.5f, kOutlineColor, 20);
+		dl->AddCircleFilled(center, radius, col, 20);
+	}
+
+	void DrawArrowhead(ImDrawList* dl, const ImVec2& tip, const ImVec2& dir, ImU32 col, float length, float width) {
+		ImVec2 back = ScreenSub(tip, ScreenMul(dir, length));
+		ImVec2 perp = ScreenMul(ScreenPerp(dir), width * 0.5f);
+		ImVec2 left = ScreenAdd(back, perp);
+		ImVec2 right = ScreenSub(back, perp);
+
+		// Dark outline pass (slightly larger) then filled color on top.
+		dl->AddTriangleFilled(tip, left, right, kOutlineColor);
+		ImVec2 tipIn = ScreenSub(tip, ScreenMul(dir, 1.0f));
+		dl->AddTriangleFilled(tipIn, ScreenAdd(left, ScreenMul(dir, 0.5f)), ScreenSub(right, ScreenMul(dir, -0.5f)), col);
+	}
+
+	void DrawBoxHandle(ImDrawList* dl, const ImVec2& center, float halfSize, ImU32 col) {
+		ImVec2 mn(center.x - halfSize, center.y - halfSize);
+		ImVec2 mx(center.x + halfSize, center.y + halfSize);
+		dl->AddRectFilled(ImVec2(mn.x - 1.5f, mn.y - 1.5f), ImVec2(mx.x + 1.5f, mx.y + 1.5f), kOutlineColor, 2.0f);
+		dl->AddRectFilled(mn, mx, col, 2.0f);
 	}
 
 	float DistanceSegment(const ImVec2& p, const ImVec2& a, const ImVec2& b) {
@@ -73,22 +123,36 @@ namespace Engine {
 
 		ImVec2 mouse = io.MousePos;
 		int hoveredAxis = -1;
+		bool centerHovered = false;
 		float bestDist = 8.0f;
+
+		const float centerRadius = 6.0f;
+		if (_ActiveAxis == -1 && ScreenLength(ScreenSub(mouse, origin)) < centerRadius + 2.0f) {
+			centerHovered = true;
+		}
 
 		for (int axis = 0; axis < 3; axis++) {
 			if (_AxisScreenLen[axis] <= 0.0f) continue;
 			ImVec2 end(origin.x + _AxisScreenDir[axis].x * size, origin.y + _AxisScreenDir[axis].y * size);
 
-			if (_ActiveAxis == -1) {
+			if (_ActiveAxis == -1 && !centerHovered) {
 				float d = DistanceSegment(mouse, origin, end);
-				if (d < bestDist) { bestDist = d; hoveredAxis = axis; } // fixed: was `hoveredAxis;`
+				if (d < bestDist) { bestDist = d; hoveredAxis = axis; }
 			}
-
-			bool isActive = (_ActiveAxis == axis);
-			ImU32 col = AxisColor(axis, isActive || hoveredAxis == axis);
-			drawList->AddLine(origin, end, col, isActive ? 4.0f : 3.0f);
-			drawList->AddCircleFilled(end, 5.0f, col);
 		}
+
+		// Draw shafts first (outline pass baked into DrawOutlinedLine), then arrowheads on top.
+		for (int axis = 0; axis < 3; axis++) {
+			if (_AxisScreenLen[axis] <= 0.0f) continue;
+			ImVec2 end(origin.x + _AxisScreenDir[axis].x * size, origin.y + _AxisScreenDir[axis].y * size);
+			bool isActive = (_ActiveAxis == axis);
+			bool isHovered = (hoveredAxis == axis);
+			ImU32 col = AxisLineColor(axis, isHovered, isActive);
+
+			DrawOutlinedLine(drawList, origin, end, col, isActive ? 3.5f : 2.5f);
+			DrawArrowhead(drawList, end, _AxisScreenDir[axis], col, 14.0f, 9.0f);
+		}
+		DrawOutlinedCircleFilled(drawList, origin, centerRadius, centerHovered ? kCenterHover : kCenterIdle);
 
 		if (_ActiveAxis == -1 && hoveredAxis != -1 && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemActive()) {
 			_ActiveAxis = hoveredAxis;
@@ -130,9 +194,9 @@ namespace Engine {
 			else probe.z += probeDist;
 
 			ImVec2 probeScreen;
-			if (!w2s(probe, probeScreen)) { _AxisScreenLen[axis] = 0.0f; continue; } // fixed: was missing
+			if (!w2s(probe, probeScreen)) { _AxisScreenLen[axis] = 0.0f; continue; }
 
-			ImVec2 delta = ScreenSub(probeScreen, origin); // fixed: was self-referencing garbage
+			ImVec2 delta = ScreenSub(probeScreen, origin);
 			_AxisScreenDir[axis] = ScreenNormalize(delta);
 			_AxisScreenLen[axis] = ScreenLength(delta);
 		}
@@ -149,12 +213,23 @@ namespace Engine {
 				float d = DistanceSegment(mouse, origin, end);
 				if (d < bestDist) { bestDist = d; hoveredAxis = axis; }
 			}
-
-			bool isActive = (_ActiveAxis == axis);
-			ImU32 col = AxisColor(axis, isActive || hoveredAxis == axis);
-			drawList->AddLine(origin, end, col, isActive ? 4.0f : 3.0f);
-			drawList->AddRectFilled(ImVec2(end.x - 4, end.y - 4), ImVec2(end.x + 4, end.y + 4), col);
 		}
+
+		for (int axis = 0; axis < 3; axis++) {
+			if (_AxisScreenLen[axis] <= 0.0f) continue;
+			ImVec2 end(origin.x + _AxisScreenDir[axis].x * size, origin.y + _AxisScreenDir[axis].y * size);
+			bool isActive = (_ActiveAxis == axis);
+			bool isHovered = (hoveredAxis == axis);
+			ImU32 col = AxisLineColor(axis, isHovered, isActive);
+
+			DrawOutlinedLine(drawList, origin, end, col, isActive ? 3.5f : 2.5f);
+			DrawBoxHandle(drawList, end, isActive ? 6.5f : 5.5f, col);
+		}
+
+		// Small center box for uniform (all-axis) scale.
+		bool centerHovered = (_ActiveAxis == -1 && hoveredAxis == -1 &&
+			ScreenLength(ScreenSub(mouse, origin)) < 8.0f);
+		DrawBoxHandle(drawList, origin, 5.0f, centerHovered ? kCenterHover : kCenterIdle);
 
 		if (_ActiveAxis == -1 && hoveredAxis != -1 && ImGui::IsMouseClicked(ImGuiMouseButton_Left)
 			&& !ImGui::IsAnyItemActive()) {
@@ -213,28 +288,47 @@ namespace Engine {
 		int hoveredAxis = -1;
 		float bestDist = 8.0f;
 
-		for (int axis = 0; axis < 3; axis++) {
-			if (!ptsValid[axis]) continue;
-			bool isActive = (_ActiveAxis == axis);
-			ImU32 col = AxisColor(axis, isActive);
-			for (int i = 0; i < segments; i++) {
-				drawList->AddLine(pts[axis][i], pts[axis][i + 1], col, isActive ? 3.0f : 2.0f);
-				if (_ActiveAxis == -1) {
-					float d = ScreenLength(ScreenSub(mouse, pts[axis][i]));
+		if (_ActiveAxis == -1) {
+			for (int axis = 0; axis < 3; axis++) {
+				if (!ptsValid[axis]) continue;
+				for (int i = 0; i < segments; i++) {
+					float d = DistanceSegment(mouse, pts[axis][i], pts[axis][i + 1]);
 					if (d < bestDist) { bestDist = d; hoveredAxis = axis; }
 				}
 			}
 		}
 
-		if (hoveredAxis != -1 && _ActiveAxis == -1) {
+		// Outline pass for every ring first, so colored strokes never get crossed by another ring's outline.
+		for (int axis = 0; axis < 3; axis++) {
+			if (!ptsValid[axis]) continue;
 			for (int i = 0; i < segments; i++)
-				drawList->AddLine(pts[hoveredAxis][i], pts[hoveredAxis][i + 1], IM_COL32(255, 255, 255, 255), 3.0f);
+				drawList->AddLine(pts[axis][i], pts[axis][i + 1], kOutlineColor, 4.5f);
+		}
+
+		for (int axis = 0; axis < 3; axis++) {
+			if (!ptsValid[axis]) continue;
+			bool isActive = (_ActiveAxis == axis);
+			bool isHovered = (hoveredAxis == axis);
+			ImU32 col = AxisLineColor(axis, isHovered, isActive);
+			float thickness = isActive ? 3.0f : (isHovered ? 2.6f : 2.0f);
+			for (int i = 0; i < segments; i++)
+				drawList->AddLine(pts[axis][i], pts[axis][i + 1], col, thickness);
+		}
+
+		// While actively dragging, fill a translucent wedge showing the angle swept this drag.
+		if (_ActiveAxis != -1 && ptsValid[_ActiveAxis]) {
+			float angleNow = atan2f(mouse.y - origin.y, mouse.x - origin.x);
+			ImU32 fillCol = (AxisLineColor(_ActiveAxis, false, true) & 0x00FFFFFF) | IM_COL32(0, 0, 0, 60);
+			drawList->PathLineTo(origin);
+			drawList->PathArcTo(origin, size, _RotateArcStart, angleNow, 32);
+			drawList->PathFillConvex(fillCol);
 		}
 
 		if (_ActiveAxis == -1 && hoveredAxis != -1 && ImGui::IsMouseClicked(ImGuiMouseButton_Left)
 			&& !ImGui::IsAnyItemActive()) {
 			_ActiveAxis = hoveredAxis;
 			_DragStartAngle = atan2f(mouse.y - origin.y, mouse.x - origin.x);
+			_RotateArcStart = _DragStartAngle;
 		}
 
 		if (_ActiveAxis != -1) {
@@ -252,5 +346,6 @@ namespace Engine {
 
 		return changed;
 	}
+
 
 }
